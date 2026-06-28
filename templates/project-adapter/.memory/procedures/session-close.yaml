@@ -1,0 +1,18 @@
+id: session-close
+name: Close Software Development Session
+version: 0.1.0
+purpose: Index project artifacts and create a next-session handoff.
+steps:
+  - read_project_adapter
+  - inspect_git_status
+  - index_repository_artifacts
+  - compile_handoff_from_durable_memory
+  - save_timestamped_handoff
+  - update_latest_handoff_aliases
+commands:
+  default: continuum session-close . --objective "resume current software development work in the next chat"
+outputs:
+  - docs/handoffs/session-close-<timestamp>.md
+  - docs/handoffs/session-close-<timestamp>.json
+  - docs/handoffs/latest.md
+  - docs/handoffs/latest.json

@@ -1,0 +1,14 @@
+budgets:
+  default:
+    max_input_tokens: 12000
+    include_sections:
+      - project_profile
+      - current_state
+      - accepted_decisions
+      - active_work
+      - relevant_procedures
+      - recent_handoff
+  large:
+    max_input_tokens: 50000
+  small:
+    max_input_tokens: 4000

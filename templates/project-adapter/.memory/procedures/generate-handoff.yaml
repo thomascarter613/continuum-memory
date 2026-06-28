@@ -1,0 +1,22 @@
+id: generate-handoff
+name: Generate Handoff
+version: 0.1.0
+purpose: Create a portable state package for continuing work in another chat, model, or agent.
+steps:
+  - read_project_adapter
+  - read_current_state
+  - read_recent_handoff
+  - inspect_git_status
+  - collect_recent_decisions
+  - collect_active_work
+  - collect_commands_and_verification
+  - generate_markdown_handoff
+  - generate_machine_readable_handoff
+outputs:
+  - docs/handoffs/latest.md
+  - docs/handoffs/latest.json
+compiler:
+  api_endpoint: /v1/handoffs/compile
+  default_retrieval_strategy: handoff
+  save_markdown_to: docs/handoffs/latest.md
+  save_json_to: docs/handoffs/latest.json

@@ -1,0 +1,16 @@
+{
+  "name": "@continuum/sdk-js",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@continuum/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "latest"
+  }
+}

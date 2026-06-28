@@ -1,0 +1,41 @@
+id: replace-with-project-id
+name: Replace With Project Name
+type: software-monorepo
+
+continuum:
+  adapter_version: 0.1.0
+  memory_namespace: project/replace-with-project-id
+
+context:
+  default_include:
+    - AGENTS.md
+    - README.md
+    - docs/adr
+    - docs/architecture
+    - docs/work/current-state.md
+  default_exclude:
+    - node_modules
+    - dist
+    - .env
+    - .continuum-data
+    - coverage
+
+commands:
+  install: bun install
+  format: bun run format
+  lint: bun run lint
+  typecheck: bun run typecheck
+  test: bun run test
+  check: bun run check
+
+handoff:
+  output_dir: docs/handoffs
+  include_recent_git_diff: true
+  include_open_tasks: true
+  include_failed_commands: true
+  include_next_actions: true
+
+policy:
+  commit_project_safe_memory: true
+  commit_private_memory: false
+  require_evidence_for_memory: true

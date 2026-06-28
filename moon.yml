@@ -1,0 +1,6 @@
+$schema: "https://moonrepo.dev/schemas/workspace.json"
+projects:
+  api: apps/api
+  cli: apps/cli
+  domain: packages/domain
+  sdk-js: packages/sdk-js

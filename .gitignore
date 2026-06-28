@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+.continuum-data/
+.data/
+*.log
+.DS_Store
+.tmp/
+.turbo/
+.moon/cache/
+*.dump
+*.dump.sha256

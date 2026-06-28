@@ -1,0 +1,55 @@
+{
+  "name": "continuum-memory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun --filter @continuum/api run dev",
+    "api:dev": "bun --filter @continuum/api run dev",
+    "cli": "bun --filter @continuum/cli start",
+    "format": "bunx biome format --write .",
+    "lint": "bunx biome lint .",
+    "typecheck": "bun --filter \"*\" run typecheck",
+    "test": "bun test",
+    "check": "bun run format && bun run lint && bun run typecheck && bun run test",
+    "db:migrate": "bun --filter @continuum/api run db:migrate",
+    "infra:up": "docker compose -f infra/docker/compose.yaml up -d",
+    "infra:down": "docker compose -f infra/docker/compose.yaml down",
+    "smoke:api": "./scripts/smoke-test-api.sh",
+    "workflow:status": "bun --filter @continuum/cli start project-status .",
+    "workflow:index": "bun --filter @continuum/cli start repo-index-workflow .",
+    "workflow:context": "bun --filter @continuum/cli start context-export . --task \"continue current software development task\"",
+    "workflow:handoff": "bun --filter @continuum/cli start handoff-save . --objective \"continue current software development task\"",
+    "workflow:close": "bun --filter @continuum/cli start session-close . --objective \"continue current software development task\"",
+    "smoke:cli": "./scripts/smoke-test-cli-workflows.sh",
+    "web:dev": "bun --filter @continuum/web run dev",
+    "web:build": "bun --filter @continuum/web run build",
+    "web:preview": "bun --filter @continuum/web run preview",
+    "admin:dev": "bun --filter @continuum/web run dev",
+    "smoke:web": "./scripts/smoke-test-web.sh",
+    "doctor": "bun run scripts/doctor.ts",
+    "release:check": "./scripts/verify-release.sh",
+    "release:archive": "./scripts/create-release-archive.sh",
+    "backup:postgres": "./scripts/backup-postgres.sh",
+    "restore:postgres": "./scripts/restore-postgres.sh",
+    "wait:api": "./scripts/wait-for-api.sh",
+    "ci:local": "bun run release:check"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "latest",
+    "typescript": "latest",
+    "@types/bun": "latest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thomascarter613/continuum-memory.git"
+  },
+  "bugs": {
+    "url": "https://github.com/thomascarter613/continuum-memory/issues"
+  },
+  "homepage": "https://github.com/thomascarter613/continuum-memory#readme"
+}

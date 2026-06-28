@@ -1,0 +1,21 @@
+handoff:
+  required_sections:
+    - objective
+    - current_state
+    - accepted_decisions
+    - active_constraints
+    - files_changed
+    - commands_run
+    - verification_status
+    - open_questions
+    - risks
+    - next_actions
+  formats:
+    - markdown
+    - json
+
+  compiler:
+    preferred_endpoint: /v1/handoffs/compile
+    require_source_memory_ids: true
+    require_context_pack_id: true
+    require_retrieval_audit: true

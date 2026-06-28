@@ -1,0 +1,14 @@
+id: context-export
+name: Export Context for New Chat
+version: 0.1.0
+purpose: Produce a portable context pack for another chat, model, or agent.
+steps:
+  - read_project_adapter
+  - build_context_pack
+  - render_markdown_context
+  - save_json_context
+commands:
+  default: continuum context-export . --task "continue current software development task"
+outputs:
+  - docs/handoffs/context-<timestamp>.md
+  - docs/handoffs/context-<timestamp>.json

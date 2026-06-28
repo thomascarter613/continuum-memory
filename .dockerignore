@@ -1,0 +1,8 @@
+.git
+node_modules
+.continuum-data
+dist
+.env
+*.dump
+*.dump.sha256
+coverage

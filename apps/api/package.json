@@ -1,0 +1,21 @@
+{
+  "name": "@continuum/api",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:migrate": "bun run src/migrate.ts"
+  },
+  "dependencies": {
+    "@continuum/domain": "workspace:*",
+    "hono": "latest",
+    "zod": "latest",
+    "pg": "latest"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "@types/pg": "latest"
+  }
+}

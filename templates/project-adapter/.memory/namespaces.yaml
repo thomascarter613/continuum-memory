@@ -1,0 +1,7 @@
+namespaces:
+  project: project/replace-with-project-id
+  architecture: project/replace-with-project-id/architecture
+  work: project/replace-with-project-id/work
+  procedures: project/replace-with-project-id/procedures
+  handoffs: project/replace-with-project-id/handoffs
+  decisions: project/replace-with-project-id/decisions
