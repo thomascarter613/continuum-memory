@@ -13,12 +13,10 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@continuum/domain": [
-        "packages/domain/src/index.ts"
-      ],
-      "@continuum/sdk-js": [
-        "packages/sdk-js/src/index.ts"
-      ]
-    }
+      "@continuum/domain": ["packages/domain/src/index.ts"],
+      "@continuum/sdk-js": ["packages/sdk-js/src/index.ts"]
+    },
+    "ignoreDeprecations": "6.0",
+    "types": ["bun-types"]
   }
 }

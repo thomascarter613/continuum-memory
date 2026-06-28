@@ -1,4 +1,9 @@
-import type { CreateMemoryCandidate, ExtractMemoryCandidatesRequest, MemoryCandidateType, MemoryType } from "@continuum/domain"
+import type {
+  CreateMemoryCandidate,
+  ExtractMemoryCandidatesRequest,
+  MemoryCandidateType,
+  MemoryType,
+} from "@continuum/domain"
 
 const candidatePatterns: Array<{
   type: MemoryCandidateType
@@ -32,7 +37,8 @@ const candidatePatterns: Array<{
     type: "task_state",
     suggestedMemoryType: "episodic",
     confidence: 0.7,
-    pattern: /\b(todo|next action|next step|active work|current state|blocker|in progress|remaining)\b/i,
+    pattern:
+      /\b(todo|next action|next step|active work|current state|blocker|in progress|remaining)\b/i,
     rationale: "The text appears to describe task or session state.",
   },
   {
@@ -70,27 +76,31 @@ function classify(segment: string) {
   return candidatePatterns.find((candidatePattern) => candidatePattern.pattern.test(segment))
 }
 
-export function extractMemoryCandidates(input: ExtractMemoryCandidatesRequest): CreateMemoryCandidate[] {
-  const scope = input.projectId ? { projectId: input.projectId } : {}
+export function extractMemoryCandidates(
+  input: ExtractMemoryCandidatesRequest,
+): CreateMemoryCandidate[] {
+  const scope: Record<string, unknown> = input.projectId ? { projectId: input.projectId } : {}
+  const candidates: CreateMemoryCandidate[] = []
 
-  return normalizeSegments(input.text)
-    .map((segment) => {
-      const match = classify(segment)
-      if (!match) return null
-      return {
-        candidateType: match.type,
-        namespace: input.namespace,
-        scope,
-        content: segment,
-        sourceEventIds: input.sourceEventIds ?? [],
-        sourceArtifactIds: input.sourceArtifactIds ?? [],
-        confidence: match.confidence,
-        sensitivity: "normal" as const,
-        status: "proposed" as const,
-        rationale: match.rationale,
-        suggestedMemoryType: match.suggestedMemoryType,
-        suggestedActions: ["review", "promote_or_reject"],
-      }
+  for (const segment of normalizeSegments(input.text)) {
+    const match = classify(segment)
+    if (!match) continue
+
+    candidates.push({
+      candidateType: match.type,
+      namespace: input.namespace,
+      scope,
+      content: segment,
+      sourceEventIds: input.sourceEventIds ?? [],
+      sourceArtifactIds: input.sourceArtifactIds ?? [],
+      confidence: match.confidence,
+      sensitivity: "normal",
+      status: "proposed",
+      rationale: match.rationale,
+      suggestedMemoryType: match.suggestedMemoryType,
+      suggestedActions: ["review", "promote_or_reject"],
     })
-    .filter((candidate): candidate is CreateMemoryCandidate => Boolean(candidate))
+  }
+
+  return candidates
 }

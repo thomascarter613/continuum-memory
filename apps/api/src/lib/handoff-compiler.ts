@@ -53,18 +53,28 @@ function asHandoffLine(memory: MemoryRecord) {
 }
 
 function inferBucket(memory: MemoryRecord): keyof HandoffBuckets {
-  const text = `${memory.memoryType} ${memory.content} ${JSON.stringify(memory.scope ?? {})}`.toLowerCase()
+  const text =
+    `${memory.memoryType} ${memory.content} ${JSON.stringify(memory.scope ?? {})}`.toLowerCase()
 
-  if (memory.memoryType === "decision" || /\b(adr|decision|accepted|chose|chosen)\b/.test(text)) return "decisions"
-  if (memory.memoryType === "procedural" || /\b(procedure|runbook|workflow|command|step)\b/.test(text)) return "procedures"
-  if (memory.memoryType === "episodic" || /\b(recent|session|happened|completed|passed|failed)\b/.test(text)) {
+  if (memory.memoryType === "decision" || /\b(adr|decision|accepted|chose|chosen)\b/.test(text))
+    return "decisions"
+  if (
+    memory.memoryType === "procedural" ||
+    /\b(procedure|runbook|workflow|command|step)\b/.test(text)
+  )
+    return "procedures"
+  if (
+    memory.memoryType === "episodic" ||
+    /\b(recent|session|happened|completed|passed|failed)\b/.test(text)
+  ) {
     if (/\b(completed|done|finished|implemented|added)\b/.test(text)) return "completedWork"
     return "recentEpisodes"
   }
   if (/\b(risk|blocker|blocked|danger|concern)\b/.test(text)) return "risks"
   if (/\b(open question|question|unknown|decide|clarify)\b/.test(text)) return "openQuestions"
   if (/\b(next|todo|remaining|follow up|follow-up)\b/.test(text)) return "nextActions"
-  if (/\b(constraint|must|should not|cannot|policy|prefer|preference|default)\b/.test(text)) return "constraints"
+  if (/\b(constraint|must|should not|cannot|policy|prefer|preference|default)\b/.test(text))
+    return "constraints"
   if (/\b(test|check|verify|verification|passed|failing|failed)\b/.test(text)) return "verification"
   return "currentState"
 }
@@ -104,7 +114,9 @@ function collectBuckets(contextPack: ContextPack, sourceMemories: MemoryRecord[]
   }
 
   for (const memory of sourceMemories) {
-    const alreadyCaptured = Object.values(buckets).some((items) => items.some((item) => item.includes(memory.id)))
+    const alreadyCaptured = Object.values(buckets).some((items) =>
+      items.some((item) => item.includes(memory.id)),
+    )
     if (alreadyCaptured) continue
     buckets[inferBucket(memory)].push(asHandoffLine(memory))
   }
@@ -112,7 +124,11 @@ function collectBuckets(contextPack: ContextPack, sourceMemories: MemoryRecord[]
   return buckets
 }
 
-function renderCurrentState(input: ParsedHandoffCompileRequest, buckets: HandoffBuckets, contextPack: ContextPack) {
+function renderCurrentState(
+  input: ParsedHandoffCompileRequest,
+  buckets: HandoffBuckets,
+  contextPack: ContextPack,
+) {
   if (input.currentStateOverride?.trim()) return input.currentStateOverride.trim()
 
   const topProjectState = buckets.currentState.slice(0, 6)

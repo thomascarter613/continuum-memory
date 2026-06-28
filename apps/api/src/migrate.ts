@@ -1,6 +1,6 @@
 import { getConfig } from "./config"
-import { createPool } from "./db/pool"
 import { runMigrations } from "./db/migrations"
+import { createPool } from "./db/pool"
 
 const config = getConfig()
 const pool = createPool(config.databaseUrl)

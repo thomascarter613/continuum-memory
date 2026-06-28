@@ -95,14 +95,16 @@ export const ContextBuildRequestSchema = z.object({
       includeSuperseded: false,
       allowSensitive: false,
     }),
-  include: z.array(z.string()).default([
-    "project_state",
-    "user_preferences",
-    "decisions",
-    "procedures",
-    "recent_episodes",
-    "open_tasks",
-  ]),
+  include: z
+    .array(z.string())
+    .default([
+      "project_state",
+      "user_preferences",
+      "decisions",
+      "procedures",
+      "recent_episodes",
+      "open_tasks",
+    ]),
 })
 
 export type ContextBuildRequest = z.input<typeof ContextBuildRequestSchema>

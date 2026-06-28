@@ -1,33 +1,33 @@
 import type {
   ArtifactRecord,
   ArtifactSearchRequest,
-  CreateArtifactRecord,
-  CreateRepoIndexRun,
-  RepoIndexRun,
   ContextRetrievalRequest,
   ContextRetrievalResult,
+  CreateArtifactRecord,
   CreateContextRetrievalRequest,
   CreateContextRetrievalResult,
-  CreateMemoryCandidate,
   CreateLlmCallAudit,
   CreateLlmProviderConfig,
+  CreateMemoryCandidate,
   CreateMemoryEvaluation,
   CreateMemoryEvent,
   CreateMemoryRecord,
   CreatePolicyDecision,
+  CreateRepoIndexRun,
   HandoffCreateRequest,
   HandoffPack,
   LlmCallAudit,
   LlmProviderConfig,
   MemoryCandidate,
   MemoryCandidatePromotionResult,
-  MemoryEvaluation,
   MemoryCandidateSearchRequest,
+  MemoryEvaluation,
   MemoryEvent,
   MemoryRecord,
   MemorySearchRequest,
   PolicyDecision,
   PromoteMemoryCandidateRequest,
+  RepoIndexRun,
 } from "@continuum/domain"
 
 export interface StoreHealth {
@@ -44,12 +44,17 @@ export interface ContinuumStore {
   getMemory(id: string): Promise<MemoryRecord | null>
   searchMemory(input: MemorySearchRequest): Promise<MemoryRecord[]>
   listActiveMemories(input?: { projectId?: string }): Promise<MemoryRecord[]>
-  createContextRetrievalRequest(input: CreateContextRetrievalRequest): Promise<ContextRetrievalRequest>
+  createContextRetrievalRequest(
+    input: CreateContextRetrievalRequest,
+  ): Promise<ContextRetrievalRequest>
   createContextRetrievalResult(input: CreateContextRetrievalResult): Promise<ContextRetrievalResult>
   createCandidate(input: CreateMemoryCandidate): Promise<MemoryCandidate>
   getCandidate(id: string): Promise<MemoryCandidate | null>
   searchCandidates(input: MemoryCandidateSearchRequest): Promise<MemoryCandidate[]>
-  promoteCandidate(id: string, input: PromoteMemoryCandidateRequest): Promise<MemoryCandidatePromotionResult | null>
+  promoteCandidate(
+    id: string,
+    input: PromoteMemoryCandidateRequest,
+  ): Promise<MemoryCandidatePromotionResult | null>
   rejectCandidate(id: string, reason: string): Promise<MemoryCandidate | null>
   createPolicyDecision(input: CreatePolicyDecision): Promise<PolicyDecision>
   listPolicyDecisions(input?: { projectId?: string; limit?: number }): Promise<PolicyDecision[]>

@@ -1,7 +1,15 @@
 #!/usr/bin/env bun
 
 import { execFileSync } from "node:child_process"
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync, copyFileSync } from "node:fs"
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs"
 import { dirname, join, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { ContinuumClient } from "@continuum/sdk-js"
@@ -134,7 +142,10 @@ function matchNestedYamlScalar(text: string, parent: string, child: string) {
     }
 
     if (insideParent && trimmed.startsWith(`${child}:`)) {
-      return trimmed.slice(child.length + 1).trim().replace(/^['"]|['"]$/g, "")
+      return trimmed
+        .slice(child.length + 1)
+        .trim()
+        .replace(/^['"]|['"]$/g, "")
     }
   }
 
@@ -157,7 +168,12 @@ function nowStamp() {
   return new Date().toISOString().replace(/[:.]/g, "-")
 }
 
-function copyTemplateDirectory(source: string, target: string, replacements: Record<string, string>, force: boolean) {
+function copyTemplateDirectory(
+  source: string,
+  target: string,
+  replacements: Record<string, string>,
+  force: boolean,
+) {
   assertExists(source, "Template directory")
   mkdirSync(target, { recursive: true })
 
@@ -195,7 +211,11 @@ function isTextPath(path: string) {
 
 function runGit(projectRoot: string, args: string[]) {
   try {
-    return execFileSync("git", args, { cwd: projectRoot, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim()
+    return execFileSync("git", args, {
+      cwd: projectRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim()
   } catch {
     return ""
   }
@@ -235,7 +255,10 @@ function renderContextMarkdown(projectName: string, task: string, context: any) 
     lines.push("", "No citations were returned.")
   }
   for (const citation of citations) {
-    lines.push("", `- ${citation.memoryId ?? citation.id ?? "unknown"}: ${citation.label ?? citation.content ?? "citation"}`)
+    lines.push(
+      "",
+      `- ${citation.memoryId ?? citation.id ?? "unknown"}: ${citation.label ?? citation.content ?? "citation"}`,
+    )
   }
 
   return `${lines.join("\n")}\n`
@@ -410,7 +433,8 @@ async function run() {
   } else if (command === "adapter-install") {
     const { positional, flags } = parseFlags(args)
     const projectRoot = resolve(positional[0] ?? ".")
-    const id = flagString(flags, "id", slug(projectRoot.split(/[\\/]/).at(-1) ?? "project")) ?? "project"
+    const id =
+      flagString(flags, "id", slug(projectRoot.split(/[\\/]/).at(-1) ?? "project")) ?? "project"
     const name = flagString(flags, "name", id) ?? id
     const force = flags.force === true
     copyTemplateDirectory(
@@ -430,7 +454,13 @@ async function run() {
           id,
           name,
           force,
-          installed: [".memory", "AGENTS.md", "docs/work/current-state.md", "docs/adr", "docs/handoffs"],
+          installed: [
+            ".memory",
+            "AGENTS.md",
+            "docs/work/current-state.md",
+            "docs/adr",
+            "docs/handoffs",
+          ],
         },
         null,
         2,
@@ -497,37 +527,60 @@ async function run() {
     const { positional, flags } = parseFlags(args)
     const projectRoot = resolve(positional[0] ?? ".")
     const config = readProjectConfig(projectRoot)
-    const task = flagString(flags, "task", positional.slice(1).join(" ")) || "continue current software development task"
-    const output = resolve(projectRoot, flagString(flags, "output", `docs/handoffs/context-${nowStamp()}.md`) ?? "docs/handoffs/context.md")
+    const task =
+      flagString(flags, "task", positional.slice(1).join(" ")) ||
+      "continue current software development task"
+    const output = resolve(
+      projectRoot,
+      flagString(flags, "output", `docs/handoffs/context-${nowStamp()}.md`) ??
+        "docs/handoffs/context.md",
+    )
     const context = await client.buildContext({
       projectId: config.id,
       task,
       query: task,
       include: ["project_state", "decisions", "procedures", "recent_episodes", "artifacts"],
-      retrieval: { strategy: "hybrid", includeEvidence: true, minScore: 0.1 },
+      retrieval: { strategy: "balanced", includeEvidence: true, minScore: 0.1 },
       budget: { maxInputTokens: 12_000 },
     })
     const markdown = renderContextMarkdown(config.name, task, context)
     ensureParent(output)
     writeFileSync(output, markdown, "utf8")
     writeFileSync(output.replace(/\.md$/i, ".json"), JSON.stringify(context, null, 2), "utf8")
-    console.log(JSON.stringify({ ok: true, projectId: config.id, output, jsonOutput: output.replace(/\.md$/i, ".json") }, null, 2))
+    console.log(
+      JSON.stringify(
+        { ok: true, projectId: config.id, output, jsonOutput: output.replace(/\.md$/i, ".json") },
+        null,
+        2,
+      ),
+    )
   } else if (command === "handoff-save") {
     const { positional, flags } = parseFlags(args)
     const projectRoot = resolve(positional[0] ?? ".")
     const config = readProjectConfig(projectRoot)
-    const objective = flagString(flags, "objective", positional.slice(1).join(" ")) || "continue current software development task"
-    const output = resolve(projectRoot, flagString(flags, "output", join(config.handoffOutputDir, `handoff-${nowStamp()}.md`)) ?? join(config.handoffOutputDir, "latest.md"))
+    const objective =
+      flagString(flags, "objective", positional.slice(1).join(" ")) ||
+      "continue current software development task"
+    const output = resolve(
+      projectRoot,
+      flagString(flags, "output", join(config.handoffOutputDir, `handoff-${nowStamp()}.md`)) ??
+        join(config.handoffOutputDir, "latest.md"),
+    )
     const result: any = await client.compileHandoff({
       projectId: config.id,
       title: `${config.name} Handoff`,
       objective,
-      query: "current state accepted decisions active constraints open tasks files changed commands verification risks next actions",
+      query:
+        "current state accepted decisions active constraints open tasks files changed commands verification risks next actions",
       retrieval: { strategy: "handoff", minScore: 0.1, includeEvidence: true },
     })
     ensureParent(output)
     writeFileSync(output, result.markdown ?? JSON.stringify(result, null, 2), "utf8")
-    writeFileSync(output.replace(/\.md$/i, ".json"), JSON.stringify(result.json ?? result, null, 2), "utf8")
+    writeFileSync(
+      output.replace(/\.md$/i, ".json"),
+      JSON.stringify(result.json ?? result, null, 2),
+      "utf8",
+    )
 
     const latestMd = resolve(projectRoot, config.handoffOutputDir, "latest.md")
     const latestJson = resolve(projectRoot, config.handoffOutputDir, "latest.json")
@@ -535,12 +588,27 @@ async function run() {
     writeFileSync(latestMd, result.markdown ?? JSON.stringify(result, null, 2), "utf8")
     writeFileSync(latestJson, JSON.stringify(result.json ?? result, null, 2), "utf8")
 
-    console.log(JSON.stringify({ ok: true, projectId: config.id, output, jsonOutput: output.replace(/\.md$/i, ".json"), latestMd, latestJson }, null, 2))
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          projectId: config.id,
+          output,
+          jsonOutput: output.replace(/\.md$/i, ".json"),
+          latestMd,
+          latestJson,
+        },
+        null,
+        2,
+      ),
+    )
   } else if (command === "session-close") {
     const { positional, flags } = parseFlags(args)
     const projectRoot = resolve(positional[0] ?? ".")
     const config = readProjectConfig(projectRoot)
-    const objective = flagString(flags, "objective", positional.slice(1).join(" ")) || "continue current software development task"
+    const objective =
+      flagString(flags, "objective", positional.slice(1).join(" ")) ||
+      "continue current software development task"
     const index = await client.indexRepo({
       projectId: config.id,
       namespace: `${config.namespace}/artifacts`,
@@ -549,22 +617,56 @@ async function run() {
       maxBytesPerFile: 120_000,
       captureContent: flags["capture-content"] === true,
       dryRun: false,
-      excludeGlobs: [".git/**", "node_modules/**", "dist/**", "build/**", "coverage/**", ".continuum-data/**", ".env", ".env.*"],
+      excludeGlobs: [
+        ".git/**",
+        "node_modules/**",
+        "dist/**",
+        "build/**",
+        "coverage/**",
+        ".continuum-data/**",
+        ".env",
+        ".env.*",
+      ],
     })
     const result: any = await client.compileHandoff({
       projectId: config.id,
       title: `${config.name} Session Close Handoff`,
       objective,
-      query: "current state accepted decisions active constraints open tasks artifacts files changed commands verification risks next actions",
+      query:
+        "current state accepted decisions active constraints open tasks artifacts files changed commands verification risks next actions",
       retrieval: { strategy: "handoff", minScore: 0.1, includeEvidence: true },
     })
     const output = resolve(projectRoot, config.handoffOutputDir, `session-close-${nowStamp()}.md`)
     ensureParent(output)
     writeFileSync(output, result.markdown ?? JSON.stringify(result, null, 2), "utf8")
-    writeFileSync(output.replace(/\.md$/i, ".json"), JSON.stringify(result.json ?? result, null, 2), "utf8")
-    writeFileSync(resolve(projectRoot, config.handoffOutputDir, "latest.md"), result.markdown ?? JSON.stringify(result, null, 2), "utf8")
-    writeFileSync(resolve(projectRoot, config.handoffOutputDir, "latest.json"), JSON.stringify(result.json ?? result, null, 2), "utf8")
-    console.log(JSON.stringify({ ok: true, projectId: config.id, indexed: index, output, latest: join(config.handoffOutputDir, "latest.md") }, null, 2))
+    writeFileSync(
+      output.replace(/\.md$/i, ".json"),
+      JSON.stringify(result.json ?? result, null, 2),
+      "utf8",
+    )
+    writeFileSync(
+      resolve(projectRoot, config.handoffOutputDir, "latest.md"),
+      result.markdown ?? JSON.stringify(result, null, 2),
+      "utf8",
+    )
+    writeFileSync(
+      resolve(projectRoot, config.handoffOutputDir, "latest.json"),
+      JSON.stringify(result.json ?? result, null, 2),
+      "utf8",
+    )
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          projectId: config.id,
+          indexed: index,
+          output,
+          latest: join(config.handoffOutputDir, "latest.md"),
+        },
+        null,
+        2,
+      ),
+    )
   } else {
     console.error(`Unknown command: ${command}`)
     help()

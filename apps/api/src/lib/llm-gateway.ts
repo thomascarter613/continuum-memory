@@ -28,9 +28,9 @@ function estimateTokens(text: string) {
   return Math.ceil(text.length / 4)
 }
 
-function summarizeMessages(messages: { role: string; content: string }[]) {
+function summarizeMessages(messages: Array<{ role: string; content?: string | undefined }>) {
   return messages
-    .map((message) => `${message.role}: ${message.content.slice(0, 160)}`)
+    .map((message) => `${message.role}: ${(message.content ?? "").slice(0, 160)}`)
     .join("\n")
     .slice(0, 1200)
 }
@@ -121,7 +121,10 @@ function providerSupports(provider: LlmProviderConfig, capability: string) {
   return capabilities[capability] === true || (capability === "chat" && capabilities.chat !== false)
 }
 
-export function routeLlmProvider(providers: LlmProviderConfig[], request: LlmRouteRequest): LlmRouteResult {
+export function routeLlmProvider(
+  providers: LlmProviderConfig[],
+  request: LlmRouteRequest,
+): LlmRouteResult {
   const enabled = providers.filter((provider) => provider.enabled)
   const warnings: string[] = []
 
@@ -129,18 +132,25 @@ export function routeLlmProvider(providers: LlmProviderConfig[], request: LlmRou
   const sensitivity = request.sensitivity ?? "normal"
 
   if (sensitivity === "secret") {
-    warnings.push("secret sensitivity should normally use a local or mock provider unless a provider policy explicitly allows export")
+    warnings.push(
+      "secret sensitivity should normally use a local or mock provider unless a provider policy explicitly allows export",
+    )
   }
 
   const preferred = request.preferredProviderId
     ? enabled.find((provider) => provider.id === request.preferredProviderId)
     : undefined
 
-  const candidates = preferred ? [preferred, ...enabled.filter((provider) => provider.id !== preferred.id)] : enabled
+  const candidates = preferred
+    ? [preferred, ...enabled.filter((provider) => provider.id !== preferred.id)]
+    : enabled
 
   const selected = candidates.find((provider) => {
-    const hasCapabilities = requiredCapabilities.every((capability) => providerSupports(provider, capability))
-    const hasWindow = !request.minContextWindow || provider.capabilities.contextWindow >= request.minContextWindow
+    const hasCapabilities = requiredCapabilities.every((capability) =>
+      providerSupports(provider, capability),
+    )
+    const hasWindow =
+      !request.minContextWindow || provider.capabilities.contextWindow >= request.minContextWindow
     return hasCapabilities && hasWindow
   })
 
@@ -154,7 +164,8 @@ export function routeLlmProvider(providers: LlmProviderConfig[], request: LlmRou
   ]
 
   if (preferred?.id === selected.id) reasons.push("preferred provider was available")
-  if (selected.id === "mock") reasons.push("mock provider is safe for local smoke tests and offline development")
+  if (selected.id === "mock")
+    reasons.push("mock provider is safe for local smoke tests and offline development")
 
   return {
     provider: selected,
@@ -164,7 +175,10 @@ export function routeLlmProvider(providers: LlmProviderConfig[], request: LlmRou
   }
 }
 
-function contextPackToPrompt(contextPack: Record<string, unknown> | undefined, includeCitations: boolean) {
+function contextPackToPrompt(
+  contextPack: Record<string, unknown> | undefined,
+  includeCitations: boolean,
+) {
   if (!contextPack) return ""
   const sections = contextPack.sections
   const lines: string[] = []
@@ -191,7 +205,7 @@ export function compilePrompt(request: PromptCompileRequest): PromptCompileRespo
   const createdAt = now()
   const warnings: string[] = []
   const sections: string[] = []
-  const messages = []
+  const messages: PromptCompileResponse["messages"] = []
 
   const systemParts = [
     request.systemInstruction ??
@@ -219,7 +233,10 @@ export function compilePrompt(request: PromptCompileRequest): PromptCompileRespo
   messages.push({ role: "system" as const, content: systemParts.join("\n\n"), metadata: {} })
   messages.push({ role: "user" as const, content: request.userMessage, metadata: {} })
 
-  const estimatedInputTokens = messages.reduce((total, message) => total + estimateTokens(message.content), 0)
+  const estimatedInputTokens = messages.reduce(
+    (total, message) => total + estimateTokens(message.content ?? ""),
+    0,
+  )
 
   return {
     id,
@@ -232,9 +249,16 @@ export function compilePrompt(request: PromptCompileRequest): PromptCompileRespo
   }
 }
 
-function createMockChatResponse(request: LlmChatRequest, provider: LlmProviderConfig, model: string): LlmChatResponse {
+function createMockChatResponse(
+  request: LlmChatRequest,
+  provider: LlmProviderConfig,
+  model: string,
+): LlmChatResponse {
   const id = randomUUID()
-  const inputTokens = request.messages.reduce((total, message) => total + estimateTokens(message.content), 0)
+  const inputTokens = request.messages.reduce(
+    (total, message) => total + estimateTokens(message.content ?? ""),
+    0,
+  )
   const content = [
     "Mock LLM response from Continuum Memory.",
     "This confirms the gateway, provider routing, prompt shape, and audit path without calling an external model.",
@@ -262,7 +286,10 @@ async function callOpenAiCompatible(
 ): Promise<LlmChatResponse> {
   const start = Date.now()
   const apiKey = provider.apiKeyEnv ? process.env[provider.apiKeyEnv] : undefined
-  if (!apiKey) throw new Error(`Missing API key environment variable: ${provider.apiKeyEnv ?? "provider api key"}`)
+  if (!apiKey)
+    throw new Error(
+      `Missing API key environment variable: ${provider.apiKeyEnv ?? "provider api key"}`,
+    )
   if (!provider.baseUrl) throw new Error(`Provider ${provider.id} is missing baseUrl`)
 
   const response = await fetch(`${provider.baseUrl.replace(/\/$/, "")}/chat/completions`, {
@@ -273,7 +300,10 @@ async function callOpenAiCompatible(
     },
     body: JSON.stringify({
       model,
-      messages: request.messages.map((message) => ({ role: message.role, content: message.content })),
+      messages: request.messages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      })),
       temperature: request.temperature ?? 0.2,
       max_tokens: request.maxOutputTokens ?? provider.capabilities.maxOutputTokens,
     }),
@@ -281,12 +311,16 @@ async function callOpenAiCompatible(
 
   const raw = (await response.json()) as Record<string, unknown>
   if (!response.ok) {
-    throw new Error(`OpenAI-compatible provider returned ${response.status}: ${JSON.stringify(raw).slice(0, 500)}`)
+    throw new Error(
+      `OpenAI-compatible provider returned ${response.status}: ${JSON.stringify(raw).slice(0, 500)}`,
+    )
   }
 
   const choices = raw.choices as Array<{ message?: { content?: string } }> | undefined
   const content = choices?.[0]?.message?.content ?? ""
-  const usage = raw.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined
+  const usage = raw.usage as
+    | { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+    | undefined
   return {
     id: randomUUID(),
     providerId: provider.id,
@@ -305,7 +339,11 @@ async function callOpenAiCompatible(
   }
 }
 
-async function callOllama(request: LlmChatRequest, provider: LlmProviderConfig, model: string): Promise<LlmChatResponse> {
+async function callOllama(
+  request: LlmChatRequest,
+  provider: LlmProviderConfig,
+  model: string,
+): Promise<LlmChatResponse> {
   const start = Date.now()
   if (!provider.baseUrl) throw new Error(`Provider ${provider.id} is missing baseUrl`)
   const response = await fetch(`${provider.baseUrl.replace(/\/$/, "")}/api/chat`, {
@@ -314,15 +352,22 @@ async function callOllama(request: LlmChatRequest, provider: LlmProviderConfig, 
     body: JSON.stringify({
       model,
       stream: false,
-      messages: request.messages.map((message) => ({ role: message.role, content: message.content })),
+      messages: request.messages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      })),
       options: { temperature: request.temperature ?? 0.2 },
     }),
   })
   const raw = (await response.json()) as Record<string, unknown>
-  if (!response.ok) throw new Error(`Ollama returned ${response.status}: ${JSON.stringify(raw).slice(0, 500)}`)
+  if (!response.ok)
+    throw new Error(`Ollama returned ${response.status}: ${JSON.stringify(raw).slice(0, 500)}`)
   const message = raw.message as { content?: string } | undefined
   const content = message?.content ?? ""
-  const inputTokens = request.messages.reduce((total, item) => total + estimateTokens(item.content), 0)
+  const inputTokens = request.messages.reduce(
+    (total, item) => total + estimateTokens(item.content ?? ""),
+    0,
+  )
   const outputTokens = estimateTokens(content)
   return {
     id: randomUUID(),
@@ -343,17 +388,21 @@ export async function chatWithProvider(
   provider: LlmProviderConfig,
   model: string,
 ): Promise<LlmChatResponse> {
-  if (!request.execute || provider.providerKind === "mock") return createMockChatResponse(request, provider, model)
-  if (provider.providerKind === "openai-compatible") return callOpenAiCompatible(request, provider, model)
+  if (!request.execute || provider.providerKind === "mock")
+    return createMockChatResponse(request, provider, model)
+  if (provider.providerKind === "openai-compatible")
+    return callOpenAiCompatible(request, provider, model)
   if (provider.providerKind === "ollama") return callOllama(request, provider, model)
-  throw new Error(`Provider kind ${provider.providerKind} is not executable yet; use execute=false for dry-run routing.`)
+  throw new Error(
+    `Provider kind ${provider.providerKind} is not executable yet; use execute=false for dry-run routing.`,
+  )
 }
 
 function deterministicVector(text: string, dimensions = 16) {
   const vector = Array.from({ length: dimensions }, () => 0)
   for (let index = 0; index < text.length; index += 1) {
     const bucket = index % dimensions
-    vector[bucket] += text.charCodeAt(index) / 1000
+    vector[bucket] = (vector[bucket] ?? 0) + text.charCodeAt(index) / 1000
   }
   const norm = Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0)) || 1
   return vector.map((value) => Number((value / norm).toFixed(6)))

@@ -18,7 +18,8 @@ export function validateRuntimeConfig(config: ContinuumConfig): RuntimeValidatio
     issues.push({
       level: "error",
       code: "invalid_database_url",
-      message: "CONTINUUM_DATABASE_URL or DATABASE_URL must be a PostgreSQL connection string when CONTINUUM_STORE=postgres.",
+      message:
+        "CONTINUUM_DATABASE_URL or DATABASE_URL must be a PostgreSQL connection string when CONTINUUM_STORE=postgres.",
     })
   }
 
@@ -26,7 +27,8 @@ export function validateRuntimeConfig(config: ContinuumConfig): RuntimeValidatio
     issues.push({
       level: "warning",
       code: "small_context_budget",
-      message: "CONTINUUM_DEFAULT_CONTEXT_BUDGET_TOKENS is unusually small for handoff/context compilation.",
+      message:
+        "CONTINUUM_DEFAULT_CONTEXT_BUDGET_TOKENS is unusually small for handoff/context compilation.",
     })
   }
 

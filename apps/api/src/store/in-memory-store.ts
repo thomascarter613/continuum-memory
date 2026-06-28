@@ -1,12 +1,10 @@
 import { randomUUID } from "node:crypto"
 import {
-  HandoffCreateRequestSchema,
-  LlmProviderConfigSchema,
   type ArtifactRecord,
   type ArtifactSearchRequest,
   type ContextRetrievalRequest,
-  type CreateArtifactRecord,
   type ContextRetrievalResult,
+  type CreateArtifactRecord,
   type CreateContextRetrievalRequest,
   type CreateContextRetrievalResult,
   type CreateLlmCallAudit,
@@ -18,19 +16,21 @@ import {
   type CreatePolicyDecision,
   type CreateRepoIndexRun,
   type HandoffCreateRequest,
+  HandoffCreateRequestSchema,
   type HandoffPack,
   type LlmCallAudit,
   type LlmProviderConfig,
+  LlmProviderConfigSchema,
   type MemoryCandidate,
   type MemoryCandidatePromotionResult,
-  type MemoryEvaluation,
   type MemoryCandidateSearchRequest,
+  type MemoryEvaluation,
   type MemoryEvent,
   type MemoryRecord,
   type MemorySearchRequest,
   type PolicyDecision,
-  type RepoIndexRun,
   type PromoteMemoryCandidateRequest,
+  type RepoIndexRun,
 } from "@continuum/domain"
 import { renderHandoffMarkdown } from "../lib/handoff-markdown"
 import { now } from "../lib/time"
@@ -127,7 +127,9 @@ export class InMemoryContinuumStore implements ContinuumStore {
       .filter((memory) => !input.memoryTypes || input.memoryTypes.includes(memory.memoryType))
       .filter(
         (memory) =>
-          !input.projectId || memory.scope.projectId === input.projectId || memory.namespace.includes(input.projectId),
+          !input.projectId ||
+          memory.scope.projectId === input.projectId ||
+          memory.namespace.includes(input.projectId),
       )
       .filter((memory) => !query || memory.content.toLowerCase().includes(query))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
@@ -139,13 +141,16 @@ export class InMemoryContinuumStore implements ContinuumStore {
       .filter((memory) => memory.status === "active")
       .filter(
         (memory) =>
-          !input?.projectId || memory.scope.projectId === input.projectId || memory.namespace.includes(input.projectId),
+          !input?.projectId ||
+          memory.scope.projectId === input.projectId ||
+          memory.namespace.includes(input.projectId),
       )
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
   }
 
-
-  async createContextRetrievalRequest(input: CreateContextRetrievalRequest): Promise<ContextRetrievalRequest> {
+  async createContextRetrievalRequest(
+    input: CreateContextRetrievalRequest,
+  ): Promise<ContextRetrievalRequest> {
     const request: ContextRetrievalRequest = {
       ...input,
       id: input.id ?? randomUUID(),
@@ -157,7 +162,9 @@ export class InMemoryContinuumStore implements ContinuumStore {
     return request
   }
 
-  async createContextRetrievalResult(input: CreateContextRetrievalResult): Promise<ContextRetrievalResult> {
+  async createContextRetrievalResult(
+    input: CreateContextRetrievalResult,
+  ): Promise<ContextRetrievalResult> {
     const result: ContextRetrievalResult = {
       ...input,
       id: input.id ?? randomUUID(),
@@ -195,11 +202,16 @@ export class InMemoryContinuumStore implements ContinuumStore {
     const query = input.query?.toLowerCase()
     return [...this.candidates.values()]
       .filter((candidate) => !input.namespace || candidate.namespace === input.namespace)
-      .filter((candidate) => !input.candidateTypes || input.candidateTypes.includes(candidate.candidateType))
+      .filter(
+        (candidate) =>
+          !input.candidateTypes || input.candidateTypes.includes(candidate.candidateType),
+      )
       .filter((candidate) => !input.statuses || input.statuses.includes(candidate.status))
       .filter(
         (candidate) =>
-          !input.projectId || candidate.scope.projectId === input.projectId || candidate.namespace.includes(input.projectId),
+          !input.projectId ||
+          candidate.scope.projectId === input.projectId ||
+          candidate.namespace.includes(input.projectId),
       )
       .filter((candidate) => !query || candidate.content.toLowerCase().includes(query))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
@@ -252,7 +264,6 @@ export class InMemoryContinuumStore implements ContinuumStore {
     return updated
   }
 
-
   async createPolicyDecision(input: CreatePolicyDecision): Promise<PolicyDecision> {
     const decision: PolicyDecision = {
       id: input.id ?? randomUUID(),
@@ -274,7 +285,10 @@ export class InMemoryContinuumStore implements ContinuumStore {
     return decision
   }
 
-  async listPolicyDecisions(input?: { projectId?: string; limit?: number }): Promise<PolicyDecision[]> {
+  async listPolicyDecisions(input?: {
+    projectId?: string
+    limit?: number
+  }): Promise<PolicyDecision[]> {
     return [...this.policyDecisions.values()]
       .filter((decision) => !input?.projectId || decision.projectId === input.projectId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -300,7 +314,10 @@ export class InMemoryContinuumStore implements ContinuumStore {
     return evaluation
   }
 
-  async listMemoryEvaluations(input?: { projectId?: string; limit?: number }): Promise<MemoryEvaluation[]> {
+  async listMemoryEvaluations(input?: {
+    projectId?: string
+    limit?: number
+  }): Promise<MemoryEvaluation[]> {
     return [...this.evaluations.values()]
       .filter((evaluation) => !input?.projectId || evaluation.projectId === input.projectId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -356,7 +373,9 @@ export class InMemoryContinuumStore implements ContinuumStore {
   }
 
   async listLlmProviders(): Promise<LlmProviderConfig[]> {
-    return [...this.llmProviders.values()].sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id))
+    return [...this.llmProviders.values()].sort(
+      (a, b) => a.priority - b.priority || a.id.localeCompare(b.id),
+    )
   }
 
   async createLlmCallAudit(input: CreateLlmCallAudit): Promise<LlmCallAudit> {
@@ -392,7 +411,6 @@ export class InMemoryContinuumStore implements ContinuumStore {
       .slice(0, input?.limit ?? 50)
   }
 
-
   async createArtifact(input: CreateArtifactRecord): Promise<ArtifactRecord> {
     const timestamp = now()
     const artifact: ArtifactRecord = {
@@ -418,14 +436,33 @@ export class InMemoryContinuumStore implements ContinuumStore {
     const query = input.query?.toLowerCase()
     return [...this.artifacts.values()]
       .filter((artifact) => !input.namespace || artifact.namespace === input.namespace)
-      .filter((artifact) => !input.projectId || artifact.projectId === input.projectId || artifact.namespace.includes(input.projectId))
-      .filter((artifact) => !input.artifactKinds || input.artifactKinds.includes(artifact.artifactKind))
+      .filter(
+        (artifact) =>
+          !input.projectId ||
+          artifact.projectId === input.projectId ||
+          artifact.namespace.includes(input.projectId),
+      )
+      .filter(
+        (artifact) => !input.artifactKinds || input.artifactKinds.includes(artifact.artifactKind),
+      )
       .filter((artifact) => !input.statuses || input.statuses.includes(artifact.status))
       .filter((artifact) => !input.pathPrefix || artifact.path?.startsWith(input.pathPrefix))
-      .filter((artifact) => !query || [artifact.name, artifact.path, artifact.uri, artifact.contentPreview, artifact.contentText]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query)))
-      .map((artifact) => input.includeContent ? artifact : { ...artifact, contentText: undefined })
+      .filter(
+        (artifact) =>
+          !query ||
+          [
+            artifact.name,
+            artifact.path,
+            artifact.uri,
+            artifact.contentPreview,
+            artifact.contentText,
+          ]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(query)),
+      )
+      .map((artifact) =>
+        input.includeContent ? artifact : { ...artifact, contentText: undefined },
+      )
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
       .slice(0, input.limit ?? 50)
   }
@@ -455,5 +492,4 @@ export class InMemoryContinuumStore implements ContinuumStore {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, input?.limit ?? 25)
   }
-
 }

@@ -1,4 +1,8 @@
-import type { CreatePolicyDecision, ParsedPolicyCheckRequest, PolicyDecisionKind } from "@continuum/domain"
+import type {
+  CreatePolicyDecision,
+  ParsedPolicyCheckRequest,
+  PolicyDecisionKind,
+} from "@continuum/domain"
 import { now } from "./time"
 
 const SECRET_PATTERNS = [
@@ -51,7 +55,9 @@ export function checkPolicy(input: ParsedPolicyCheckRequest): CreatePolicyDecisi
   }
 
   if (input.action === "handoff.export") {
-    obligations.push("include sourceMemoryIds and avoid raw private transcripts in handoff artifacts")
+    obligations.push(
+      "include sourceMemoryIds and avoid raw private transcripts in handoff artifacts",
+    )
   }
 
   if (input.action === "context.retrieve") {
@@ -61,12 +67,16 @@ export function checkPolicy(input: ParsedPolicyCheckRequest): CreatePolicyDecisi
 
   if (["artifact.write", "artifact.index", "artifact.export"].includes(input.action)) {
     obligations.push("store artifact metadata and checksums before full content where possible")
-    obligations.push("exclude generated directories, dependency folders, and private runtime data from repository indexes")
+    obligations.push(
+      "exclude generated directories, dependency folders, and private runtime data from repository indexes",
+    )
   }
 
   if (["llm.route", "llm.call", "llm.embed", "prompt.compile"].includes(input.action)) {
     obligations.push("audit provider, model, latency, token usage, and dry-run/execution status")
-    obligations.push("prefer mock or local providers for smoke tests and sensitive development data")
+    obligations.push(
+      "prefer mock or local providers for smoke tests and sensitive development data",
+    )
   }
 
   if (!reasons.length) reasons.push("no deny or review condition matched")

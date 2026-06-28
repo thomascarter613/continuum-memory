@@ -4,14 +4,55 @@ import { basename, extname, join, relative, resolve, sep } from "node:path"
 import type { CreateArtifactRecord, RepoIndexRequest } from "@continuum/domain"
 
 const TEXT_EXTENSIONS = new Set([
-  ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".jsonc", ".md", ".mdx", ".txt",
-  ".yaml", ".yml", ".toml", ".sql", ".sh", ".bash", ".zsh", ".py", ".go", ".rs", ".java", ".kt",
-  ".css", ".scss", ".html", ".xml", ".graphql", ".gql", ".proto", ".rego", ".env", ".example",
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".json",
+  ".jsonc",
+  ".md",
+  ".mdx",
+  ".txt",
+  ".yaml",
+  ".yml",
+  ".toml",
+  ".sql",
+  ".sh",
+  ".bash",
+  ".zsh",
+  ".py",
+  ".go",
+  ".rs",
+  ".java",
+  ".kt",
+  ".css",
+  ".scss",
+  ".html",
+  ".xml",
+  ".graphql",
+  ".gql",
+  ".proto",
+  ".rego",
+  ".env",
+  ".example",
 ])
 
 const CONFIG_NAMES = new Set([
-  "package.json", "tsconfig.json", "biome.json", "turbo.json", "moon.yml", "moon.yaml", "docker-compose.yml",
-  "compose.yaml", "Dockerfile", ".gitignore", ".env.example", "README.md", "AGENTS.md",
+  "package.json",
+  "tsconfig.json",
+  "biome.json",
+  "turbo.json",
+  "moon.yml",
+  "moon.yaml",
+  "docker-compose.yml",
+  "compose.yaml",
+  "Dockerfile",
+  ".gitignore",
+  ".env.example",
+  "README.md",
+  "AGENTS.md",
 ])
 
 function normalizePath(value: string) {
@@ -22,23 +63,31 @@ function matchesSimpleGlob(path: string, pattern: string) {
   const normalized = normalizePath(path)
   const p = pattern.replaceAll("\\", "/")
   if (p === "**/*") return true
-  if (p.endsWith("/**")) return normalized === p.slice(0, -3) || normalized.startsWith(p.slice(0, -3) + "/")
+  if (p.endsWith("/**"))
+    return normalized === p.slice(0, -3) || normalized.startsWith(`${p.slice(0, -3)}/`)
   if (p.startsWith("**/*")) return normalized.endsWith(p.slice(4))
   if (p.startsWith("*.")) return normalized.endsWith(p.slice(1))
-  return normalized === p || normalized.startsWith(p + "/")
+  return normalized === p || normalized.startsWith(`${p}/`)
 }
 
 function shouldExclude(path: string, patterns: string[]) {
   return patterns.some((pattern) => matchesSimpleGlob(path, pattern))
 }
 
-function inferArtifactKind(path: string, isDirectory: boolean): CreateArtifactRecord["artifactKind"] {
+function inferArtifactKind(
+  path: string,
+  isDirectory: boolean,
+): CreateArtifactRecord["artifactKind"] {
   if (isDirectory) return "directory"
   const name = basename(path)
   const ext = extname(name).toLowerCase()
   if (CONFIG_NAMES.has(name) || [".json", ".yaml", ".yml", ".toml"].includes(ext)) return "config"
   if ([".md", ".mdx", ".txt"].includes(ext)) return "documentation"
-  if ([".sql", ".graphql", ".gql", ".proto", ".json", ".yaml", ".yml"].includes(ext) && path.includes("schema")) return "schema"
+  if (
+    [".sql", ".graphql", ".gql", ".proto", ".json", ".yaml", ".yml"].includes(ext) &&
+    path.includes("schema")
+  )
+    return "schema"
   if ([".sh", ".bash", ".zsh"].includes(ext) || path.startsWith("scripts/")) return "script"
   if (path.includes("test") || path.includes("spec")) return "test"
   if ([".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"].includes(ext)) return "image"
@@ -71,7 +120,11 @@ function inferMimeType(path: string, isDirectory: boolean) {
 
 function isProbablyText(path: string) {
   const name = basename(path)
-  return TEXT_EXTENSIONS.has(extname(name).toLowerCase()) || CONFIG_NAMES.has(name) || name === "Dockerfile"
+  return (
+    TEXT_EXTENSIONS.has(extname(name).toLowerCase()) ||
+    CONFIG_NAMES.has(name) ||
+    name === "Dockerfile"
+  )
 }
 
 export interface LocalRepoIndexResult {

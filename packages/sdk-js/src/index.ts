@@ -1,14 +1,14 @@
 import type {
   ArtifactSearchRequest,
-  CreateArtifactRecord,
   ContextBuildRequest,
+  CreateArtifactRecord,
   CreateLlmProviderConfig,
-  HandoffCompletenessEvaluationRequest,
   CreateMemoryCandidate,
   CreateMemoryEvent,
   CreateMemoryRecord,
   ExtractMemoryCandidatesRequest,
   HandoffCompileRequest,
+  HandoffCompletenessEvaluationRequest,
   HandoffCreateRequest,
   LlmChatRequest,
   LlmEmbeddingRequest,
@@ -17,8 +17,8 @@ import type {
   MemoryQualityEvaluationRequest,
   MemorySearchRequest,
   PolicyCheckRequest,
-  PromptCompileRequest,
   PromoteMemoryCandidateRequest,
+  PromptCompileRequest,
   RejectMemoryCandidateRequest,
   RepoIndexRequest,
 } from "@continuum/domain"
@@ -56,7 +56,6 @@ export class ContinuumClient {
     return this.adminList("/v1/admin/repo-index-runs", input)
   }
 
-
   async listLlmProviders() {
     return this.get("/v1/llm/providers")
   }
@@ -84,8 +83,6 @@ export class ContinuumClient {
   async getLlmAudit(id: string) {
     return this.get(`/v1/llm/audits/${id}`)
   }
-
-
 
   async createArtifact(input: CreateArtifactRecord) {
     return this.post("/v1/artifacts", input)

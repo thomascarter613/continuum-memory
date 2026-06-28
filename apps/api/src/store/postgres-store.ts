@@ -1,12 +1,10 @@
 import { randomUUID } from "node:crypto"
 import {
-  HandoffCreateRequestSchema,
-  LlmProviderConfigSchema,
   type ArtifactRecord,
   type ArtifactSearchRequest,
   type ContextRetrievalRequest,
-  type CreateArtifactRecord,
   type ContextRetrievalResult,
+  type CreateArtifactRecord,
   type CreateContextRetrievalRequest,
   type CreateContextRetrievalResult,
   type CreateLlmCallAudit,
@@ -18,19 +16,21 @@ import {
   type CreatePolicyDecision,
   type CreateRepoIndexRun,
   type HandoffCreateRequest,
+  HandoffCreateRequestSchema,
   type HandoffPack,
   type LlmCallAudit,
   type LlmProviderConfig,
+  LlmProviderConfigSchema,
   type MemoryCandidate,
   type MemoryCandidatePromotionResult,
-  type MemoryEvaluation,
   type MemoryCandidateSearchRequest,
+  type MemoryEvaluation,
   type MemoryEvent,
   type MemoryRecord,
   type MemorySearchRequest,
   type PolicyDecision,
-  type RepoIndexRun,
   type PromoteMemoryCandidateRequest,
+  type RepoIndexRun,
 } from "@continuum/domain"
 import type { PgPool } from "../db/pool"
 import { renderHandoffMarkdown } from "../lib/handoff-markdown"
@@ -284,8 +284,9 @@ export class PostgresContinuumStore implements ContinuumStore {
     return result.rows.map(memoryFromRow)
   }
 
-
-  async createContextRetrievalRequest(input: CreateContextRetrievalRequest): Promise<ContextRetrievalRequest> {
+  async createContextRetrievalRequest(
+    input: CreateContextRetrievalRequest,
+  ): Promise<ContextRetrievalRequest> {
     const request: ContextRetrievalRequest = {
       ...input,
       id: input.id ?? randomUUID(),
@@ -318,7 +319,9 @@ export class PostgresContinuumStore implements ContinuumStore {
     return contextRetrievalRequestFromRow(row)
   }
 
-  async createContextRetrievalResult(input: CreateContextRetrievalResult): Promise<ContextRetrievalResult> {
+  async createContextRetrievalResult(
+    input: CreateContextRetrievalResult,
+  ): Promise<ContextRetrievalResult> {
     const resultRecord: ContextRetrievalResult = {
       ...input,
       id: input.id ?? randomUUID(),
@@ -459,7 +462,10 @@ export class PostgresContinuumStore implements ContinuumStore {
     const client = await this.pool.connect()
     try {
       await client.query("begin")
-      const candidateResult = await client.query(`select * from memory_candidates where id = $1 for update`, [id])
+      const candidateResult = await client.query(
+        `select * from memory_candidates where id = $1 for update`,
+        [id],
+      )
       const candidateRow = candidateResult.rows[0]
       if (!candidateRow) {
         await client.query("rollback")
@@ -559,7 +565,6 @@ export class PostgresContinuumStore implements ContinuumStore {
     return candidateFromRow(row)
   }
 
-
   async createPolicyDecision(input: CreatePolicyDecision): Promise<PolicyDecision> {
     const decision: PolicyDecision = {
       id: input.id ?? randomUUID(),
@@ -608,7 +613,10 @@ export class PostgresContinuumStore implements ContinuumStore {
     return policyDecisionFromRow(row)
   }
 
-  async listPolicyDecisions(input?: { projectId?: string; limit?: number }): Promise<PolicyDecision[]> {
+  async listPolicyDecisions(input?: {
+    projectId?: string
+    limit?: number
+  }): Promise<PolicyDecision[]> {
     const params: unknown[] = []
     const where: string[] = []
     if (input?.projectId) {
@@ -670,7 +678,10 @@ export class PostgresContinuumStore implements ContinuumStore {
     return memoryEvaluationFromRow(row)
   }
 
-  async listMemoryEvaluations(input?: { projectId?: string; limit?: number }): Promise<MemoryEvaluation[]> {
+  async listMemoryEvaluations(input?: {
+    projectId?: string
+    limit?: number
+  }): Promise<MemoryEvaluation[]> {
     const params: unknown[] = []
     const where: string[] = []
     if (input?.projectId) {
@@ -869,7 +880,6 @@ export class PostgresContinuumStore implements ContinuumStore {
     return llmCallAuditFromRow(row)
   }
 
-
   async listLlmCallAudits(input?: { projectId?: string; limit?: number }): Promise<LlmCallAudit[]> {
     const params: unknown[] = []
     const where: string[] = []
@@ -973,7 +983,9 @@ export class PostgresContinuumStore implements ContinuumStore {
     if (input.query) {
       params.push(`%${input.query}%`)
       const param = params.length
-      where.push(`(name ilike $${param} or path ilike $${param} or uri ilike $${param} or content_preview ilike $${param} or content_text ilike $${param})`)
+      where.push(
+        `(name ilike $${param} or path ilike $${param} or uri ilike $${param} or content_preview ilike $${param} or content_text ilike $${param})`,
+      )
     }
 
     params.push(input.limit ?? 50)
@@ -1050,5 +1062,4 @@ export class PostgresContinuumStore implements ContinuumStore {
     )
     return result.rows.map(repoIndexRunFromRow)
   }
-
 }

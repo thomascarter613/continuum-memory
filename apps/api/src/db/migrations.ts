@@ -29,7 +29,10 @@ export async function runMigrations(pool: PgPool, migrationsDir: string): Promis
     const sql = await readFile(fullPath, "utf8")
     const checksum = createHash("sha256").update(sql).digest("hex")
 
-    const existing = await pool.query(`select version from continuum_schema_migrations where version = $1`, [version])
+    const existing = await pool.query(
+      `select version from continuum_schema_migrations where version = $1`,
+      [version],
+    )
     if (existing.rows.length) {
       skipped.push(file)
       continue

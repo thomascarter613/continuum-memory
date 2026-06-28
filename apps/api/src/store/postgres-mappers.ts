@@ -1,6 +1,5 @@
 import type {
   ArtifactRecord,
-  RepoIndexRun,
   ContextRetrievalRequest,
   ContextRetrievalResult,
   HandoffPack,
@@ -11,6 +10,7 @@ import type {
   MemoryEvent,
   MemoryRecord,
   PolicyDecision,
+  RepoIndexRun,
 } from "@continuum/domain"
 
 function iso(value: Date | string | null | undefined) {
@@ -57,7 +57,8 @@ export function memoryFromRow(row: Record<string, unknown>): MemoryRecord {
     updatedAt: iso(row.updated_at as Date | string) ?? new Date().toISOString(),
   }
 
-  if (row.structured_content) memory.structuredContent = row.structured_content as Record<string, unknown>
+  if (row.structured_content)
+    memory.structuredContent = row.structured_content as Record<string, unknown>
   const validFrom = iso(row.valid_from as Date | string | null)
   const validTo = iso(row.valid_to as Date | string | null)
   if (validFrom) memory.validFrom = validFrom
@@ -67,7 +68,6 @@ export function memoryFromRow(row: Record<string, unknown>): MemoryRecord {
 
   return memory
 }
-
 
 export function candidateFromRow(row: Record<string, unknown>): MemoryCandidate {
   const candidate: MemoryCandidate = {
@@ -86,9 +86,12 @@ export function candidateFromRow(row: Record<string, unknown>): MemoryCandidate 
     updatedAt: iso(row.updated_at as Date | string) ?? new Date().toISOString(),
   }
 
-  if (row.structured_content) candidate.structuredContent = row.structured_content as Record<string, unknown>
+  if (row.structured_content)
+    candidate.structuredContent = row.structured_content as Record<string, unknown>
   if (row.rationale) candidate.rationale = String(row.rationale)
-  if (row.suggested_memory_type) candidate.suggestedMemoryType = row.suggested_memory_type as MemoryCandidate["suggestedMemoryType"]
+  if (row.suggested_memory_type)
+    candidate.suggestedMemoryType =
+      row.suggested_memory_type as MemoryCandidate["suggestedMemoryType"]
   if (row.rejection_reason) candidate.rejectionReason = String(row.rejection_reason)
   if (row.promoted_memory_id) candidate.promotedMemoryId = String(row.promoted_memory_id)
   const reviewedAt = iso(row.reviewed_at as Date | string | null)
@@ -112,8 +115,9 @@ export function handoffFromRow(row: Record<string, unknown>): HandoffPack {
   return handoff
 }
 
-
-export function contextRetrievalRequestFromRow(row: Record<string, unknown>): ContextRetrievalRequest {
+export function contextRetrievalRequestFromRow(
+  row: Record<string, unknown>,
+): ContextRetrievalRequest {
   const request: ContextRetrievalRequest = {
     id: String(row.id),
     task: String(row.task),
@@ -130,7 +134,9 @@ export function contextRetrievalRequestFromRow(row: Record<string, unknown>): Co
   return request
 }
 
-export function contextRetrievalResultFromRow(row: Record<string, unknown>): ContextRetrievalResult {
+export function contextRetrievalResultFromRow(
+  row: Record<string, unknown>,
+): ContextRetrievalResult {
   return {
     id: String(row.id),
     requestId: String(row.request_id),
@@ -144,7 +150,6 @@ export function contextRetrievalResultFromRow(row: Record<string, unknown>): Con
     createdAt: iso(row.created_at as Date | string) ?? new Date().toISOString(),
   }
 }
-
 
 export function policyDecisionFromRow(row: Record<string, unknown>): PolicyDecision {
   const decision: PolicyDecision = {
@@ -185,7 +190,6 @@ export function memoryEvaluationFromRow(row: Record<string, unknown>): MemoryEva
 
   return evaluation
 }
-
 
 export function llmProviderFromRow(row: Record<string, unknown>): LlmProviderConfig {
   const provider: LlmProviderConfig = {
@@ -232,7 +236,6 @@ export function llmCallAuditFromRow(row: Record<string, unknown>): LlmCallAudit 
   return audit
 }
 
-
 export function artifactFromRow(row: Record<string, unknown>): ArtifactRecord {
   const artifact: ArtifactRecord = {
     id: String(row.id),
@@ -252,7 +255,8 @@ export function artifactFromRow(row: Record<string, unknown>): ArtifactRecord {
   if (row.project_id) artifact.projectId = String(row.project_id)
   if (row.path) artifact.path = String(row.path)
   if (row.mime_type) artifact.mimeType = String(row.mime_type)
-  if (row.size_bytes !== null && row.size_bytes !== undefined) artifact.sizeBytes = Number(row.size_bytes)
+  if (row.size_bytes !== null && row.size_bytes !== undefined)
+    artifact.sizeBytes = Number(row.size_bytes)
   if (row.checksum) artifact.checksum = String(row.checksum)
   if (row.content_preview) artifact.contentPreview = String(row.content_preview)
   if (row.content_text) artifact.contentText = String(row.content_text)

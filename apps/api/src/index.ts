@@ -1,6 +1,3 @@
-import { Hono } from "hono"
-import { cors } from "hono/cors"
-import { ZodError } from "zod"
 import {
   ArtifactSearchRequestSchema,
   ContextBuildRequestSchema,
@@ -14,29 +11,31 @@ import {
   HandoffCompletenessEvaluationRequestSchema,
   HandoffCreateRequestSchema,
   LlmChatRequestSchema,
+  type LlmChatResponse,
   LlmEmbeddingRequestSchema,
+  type LlmEmbeddingResponse,
   LlmRouteRequestSchema,
+  type MemoryCandidate,
   MemoryCandidateSearchRequestSchema,
   MemoryQualityEvaluationRequestSchema,
+  type MemoryRecord,
   MemorySearchRequestSchema,
   PolicyCheckRequestSchema,
-  PromptCompileRequestSchema,
-  RepoIndexRequestSchema,
   PromoteMemoryCandidateRequestSchema,
+  PromptCompileRequestSchema,
   RejectMemoryCandidateRequestSchema,
-  type LlmChatResponse,
-  type MemoryCandidate,
-  type MemoryRecord,
+  RepoIndexRequestSchema,
 } from "@continuum/domain"
+import { Hono } from "hono"
+import { cors } from "hono/cors"
+import { ZodError } from "zod"
 import { getConfig } from "./config"
+import { indexLocalRepository } from "./lib/artifact-indexer"
 import { extractMemoryCandidates } from "./lib/candidate-extraction"
 import { buildContextPack } from "./lib/context-builder"
-import { indexLocalRepository } from "./lib/artifact-indexer"
+import { validateRuntimeConfig } from "./lib/env-validation"
 import { evaluateHandoffCompleteness, evaluateMemoryLike } from "./lib/evaluation-engine"
 import { compileHandoff } from "./lib/handoff-compiler"
-import { checkPolicy } from "./lib/policy-engine"
-import { validateRuntimeConfig } from "./lib/env-validation"
-import { runtimeInfo } from "./lib/release-info"
 import {
   chatWithProvider,
   compilePrompt,
@@ -46,7 +45,9 @@ import {
   mergeProviders,
   routeLlmProvider,
 } from "./lib/llm-gateway"
-import { createStore, type ContinuumStore } from "./store"
+import { checkPolicy } from "./lib/policy-engine"
+import { runtimeInfo } from "./lib/release-info"
+import { type ContinuumStore, createStore } from "./store"
 
 const config = getConfig()
 const store = createStore(config)
@@ -55,11 +56,14 @@ const app = createApp(store)
 export function createApp(activeStore: ContinuumStore) {
   const api = new Hono()
 
-  api.use("*", cors({
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
-    allowHeaders: ["content-type"],
-    allowMethods: ["GET", "POST", "OPTIONS"],
-  }))
+  api.use(
+    "*",
+    cors({
+      origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+      allowHeaders: ["content-type"],
+      allowMethods: ["GET", "POST", "OPTIONS"],
+    }),
+  )
 
   async function persistPolicyCheck(input: unknown) {
     const parsed = PolicyCheckRequestSchema.parse(input)
@@ -74,15 +78,18 @@ export function createApp(activeStore: ContinuumStore) {
   async function auditLlmResponse(
     requestKind: "chat" | "embedding",
     request: Record<string, unknown>,
-    response: LlmChatResponse | {
-      providerId: string
-      providerKind: LlmChatResponse["providerKind"]
-      model: string
-      status: LlmChatResponse["status"]
-      usage: LlmChatResponse["usage"]
-      latencyMs: number
-      error?: string
-    },
+    response:
+      | LlmChatResponse
+      | LlmEmbeddingResponse
+      | {
+          providerId: string
+          providerKind: LlmChatResponse["providerKind"]
+          model: string
+          status: LlmChatResponse["status"]
+          usage: LlmChatResponse["usage"]
+          latencyMs: number
+          error?: string
+        },
     inputSummary: string,
     projectId?: string,
   ) {
@@ -118,8 +125,6 @@ export function createApp(activeStore: ContinuumStore) {
     )
   })
 
-
-
   function adminLimit(value: string | undefined, fallback = 25, max = 250) {
     const parsed = Number(value ?? fallback)
     if (!Number.isFinite(parsed) || parsed <= 0) return fallback
@@ -133,10 +138,25 @@ export function createApp(activeStore: ContinuumStore) {
   api.get("/v1/admin/overview", async (c) => {
     const projectId = adminProjectId(c.req.query("projectId"))
     const memoryInput = projectId ? { projectId } : undefined
-    const [health, activeMemories, proposedCandidates, recentArtifacts, recentHandoffs, recentPolicyDecisions, recentEvaluations, recentLlmAudits, recentRepoIndexRuns, providers] = await Promise.all([
+    const [
+      health,
+      activeMemories,
+      proposedCandidates,
+      recentArtifacts,
+      recentHandoffs,
+      recentPolicyDecisions,
+      recentEvaluations,
+      recentLlmAudits,
+      recentRepoIndexRuns,
+      providers,
+    ] = await Promise.all([
       activeStore.health(),
       activeStore.listActiveMemories(memoryInput),
-      activeStore.searchCandidates({ ...(projectId ? { projectId } : {}), statuses: ["proposed"], limit: 250 }),
+      activeStore.searchCandidates({
+        ...(projectId ? { projectId } : {}),
+        statuses: ["proposed"],
+        limit: 250,
+      }),
       activeStore.searchArtifacts({ ...(projectId ? { projectId } : {}), limit: 10 }),
       activeStore.listHandoffs({ ...(projectId ? { projectId } : {}), limit: 10 }),
       activeStore.listPolicyDecisions({ ...(projectId ? { projectId } : {}), limit: 10 }),
@@ -184,31 +204,42 @@ export function createApp(activeStore: ContinuumStore) {
   api.get("/v1/admin/policy-decisions", async (c) => {
     const projectId = adminProjectId(c.req.query("projectId"))
     const limit = adminLimit(c.req.query("limit"), 50)
-    const results = await activeStore.listPolicyDecisions({ ...(projectId ? { projectId } : {}), limit })
+    const results = await activeStore.listPolicyDecisions({
+      ...(projectId ? { projectId } : {}),
+      limit,
+    })
     return c.json({ results })
   })
 
   api.get("/v1/admin/evaluations", async (c) => {
     const projectId = adminProjectId(c.req.query("projectId"))
     const limit = adminLimit(c.req.query("limit"), 50)
-    const results = await activeStore.listMemoryEvaluations({ ...(projectId ? { projectId } : {}), limit })
+    const results = await activeStore.listMemoryEvaluations({
+      ...(projectId ? { projectId } : {}),
+      limit,
+    })
     return c.json({ results })
   })
 
   api.get("/v1/admin/llm-audits", async (c) => {
     const projectId = adminProjectId(c.req.query("projectId"))
     const limit = adminLimit(c.req.query("limit"), 50)
-    const results = await activeStore.listLlmCallAudits({ ...(projectId ? { projectId } : {}), limit })
+    const results = await activeStore.listLlmCallAudits({
+      ...(projectId ? { projectId } : {}),
+      limit,
+    })
     return c.json({ results })
   })
 
   api.get("/v1/admin/repo-index-runs", async (c) => {
     const projectId = adminProjectId(c.req.query("projectId"))
     const limit = adminLimit(c.req.query("limit"), 25)
-    const results = await activeStore.listRepoIndexRuns({ ...(projectId ? { projectId } : {}), limit })
+    const results = await activeStore.listRepoIndexRuns({
+      ...(projectId ? { projectId } : {}),
+      limit,
+    })
     return c.json({ results })
   })
-
 
   api.get("/livez", (c) => {
     return c.json({ ok: true, service: "continuum-memory-api", ...runtimeInfo() })
@@ -251,7 +282,6 @@ export function createApp(activeStore: ContinuumStore) {
     }
   })
 
-
   api.get("/healthz", async (c) => {
     try {
       const health = await activeStore.health()
@@ -271,8 +301,6 @@ export function createApp(activeStore: ContinuumStore) {
       )
     }
   })
-
-
 
   api.get("/v1/llm/providers", async (c) => {
     const providers = await loadLlmProviders()
@@ -355,7 +383,8 @@ export function createApp(activeStore: ContinuumStore) {
       LlmRouteRequestSchema.parse({
         projectId: parsed.projectId,
         task: lastMessage,
-        preferredProviderId: parsed.providerId ?? parsed.route?.preferredProviderId ?? config.defaultLlmProviderId,
+        preferredProviderId:
+          parsed.providerId ?? parsed.route?.preferredProviderId ?? config.defaultLlmProviderId,
         requiredCapabilities: ["chat"],
         sensitivity: parsed.route?.sensitivity ?? "normal",
         minContextWindow: parsed.route?.minContextWindow,
@@ -369,7 +398,11 @@ export function createApp(activeStore: ContinuumStore) {
       targetId: route.provider.id,
       sensitivity: parsed.route?.sensitivity ?? "normal",
       purpose: lastMessage,
-      payload: { providerId: route.provider.id, model: parsed.model ?? route.model, execute: parsed.execute },
+      payload: {
+        providerId: route.provider.id,
+        model: parsed.model ?? route.model,
+        execute: parsed.execute,
+      },
     })
 
     if (policyDecision.decision === "deny") {
@@ -394,7 +427,13 @@ export function createApp(activeStore: ContinuumStore) {
       }
     }
 
-    const audit = await auditLlmResponse("chat", parsed as unknown as Record<string, unknown>, response, inputSummaryForChat(parsed), parsed.projectId)
+    const audit = await auditLlmResponse(
+      "chat",
+      parsed as unknown as Record<string, unknown>,
+      response,
+      inputSummaryForChat(parsed),
+      parsed.projectId,
+    )
     response.auditId = audit.id
     const statusCode = response.status === "failed" ? 502 : 200
     return c.json(response, statusCode)
@@ -420,7 +459,12 @@ export function createApp(activeStore: ContinuumStore) {
       targetId: route.provider.id,
       sensitivity: "normal",
       purpose: "create embeddings",
-      payload: { providerId: route.provider.id, model: parsed.model ?? route.model, count: parsed.input.length, execute: parsed.execute },
+      payload: {
+        providerId: route.provider.id,
+        model: parsed.model ?? route.model,
+        count: parsed.input.length,
+        execute: parsed.execute,
+      },
     })
 
     if (policyDecision.decision === "deny") {
@@ -444,8 +488,6 @@ export function createApp(activeStore: ContinuumStore) {
     if (!audit) return c.json({ error: "llm_audit_not_found" }, 404)
     return c.json(audit)
   })
-
-
 
   api.post("/v1/artifacts", async (c) => {
     const body = await c.req.json()
@@ -538,7 +580,6 @@ export function createApp(activeStore: ContinuumStore) {
     return c.json({ run, artifacts, dryRun: parsed.dryRun }, 201)
   })
 
-
   api.post("/v1/policy/check", async (c) => {
     const body = await c.req.json()
     const decision = await persistPolicyCheck(body)
@@ -555,7 +596,7 @@ export function createApp(activeStore: ContinuumStore) {
     let targetType: "memory" | "candidate" = "memory"
 
     if (!target && parsed.memoryId) {
-      target = await activeStore.getMemory(parsed.memoryId) ?? undefined
+      target = (await activeStore.getMemory(parsed.memoryId)) ?? undefined
     }
 
     if (!target && parsed.candidate) {
@@ -564,7 +605,7 @@ export function createApp(activeStore: ContinuumStore) {
     }
 
     if (!target && parsed.candidateId) {
-      target = await activeStore.getCandidate(parsed.candidateId) ?? undefined
+      target = (await activeStore.getCandidate(parsed.candidateId)) ?? undefined
       targetType = "candidate"
     }
 
@@ -572,7 +613,9 @@ export function createApp(activeStore: ContinuumStore) {
       return c.json({ error: "evaluation_target_not_found" }, 404)
     }
 
-    const evaluation = await activeStore.createMemoryEvaluation(evaluateMemoryLike({ target, targetType }))
+    const evaluation = await activeStore.createMemoryEvaluation(
+      evaluateMemoryLike({ target, targetType }),
+    )
     return c.json(evaluation, 201)
   })
 
@@ -582,14 +625,16 @@ export function createApp(activeStore: ContinuumStore) {
     let handoff = parsed.handoff
 
     if (!handoff && parsed.handoffId) {
-      handoff = await activeStore.getHandoff(parsed.handoffId) ?? undefined
+      handoff = (await activeStore.getHandoff(parsed.handoffId)) ?? undefined
     }
 
     if (!handoff) {
       return c.json({ error: "evaluation_target_not_found" }, 404)
     }
 
-    const evaluation = await activeStore.createMemoryEvaluation(evaluateHandoffCompleteness(handoff))
+    const evaluation = await activeStore.createMemoryEvaluation(
+      evaluateHandoffCompleteness(handoff),
+    )
     return c.json(evaluation, 201)
   })
 
@@ -620,7 +665,9 @@ export function createApp(activeStore: ContinuumStore) {
     }
 
     const memory = await activeStore.createMemory(parsed)
-    await activeStore.createMemoryEvaluation(evaluateMemoryLike({ target: memory, targetType: "memory" }))
+    await activeStore.createMemoryEvaluation(
+      evaluateMemoryLike({ target: memory, targetType: "memory" }),
+    )
     return c.json(memory, 201)
   })
 
@@ -684,7 +731,8 @@ export function createApp(activeStore: ContinuumStore) {
 
     const policyDecision = await persistPolicyCheck({
       action: "candidate.promote",
-      projectId: typeof candidate.scope?.projectId === "string" ? candidate.scope.projectId : undefined,
+      projectId:
+        typeof candidate.scope?.projectId === "string" ? candidate.scope.projectId : undefined,
       namespace: parsed.namespace ?? candidate.namespace,
       targetType: "candidate",
       targetId: candidate.id,
@@ -692,7 +740,10 @@ export function createApp(activeStore: ContinuumStore) {
       memoryType: parsed.memoryType ?? candidate.suggestedMemoryType,
       sensitivity: parsed.sensitivity ?? candidate.sensitivity,
       evidenceCount: candidate.sourceEventIds.length + candidate.sourceArtifactIds.length,
-      payload: { content: parsed.content ?? candidate.content, structuredContent: parsed.structuredContent ?? candidate.structuredContent },
+      payload: {
+        content: parsed.content ?? candidate.content,
+        structuredContent: parsed.structuredContent ?? candidate.structuredContent,
+      },
     })
 
     if (policyDecision.decision === "deny") {
@@ -703,7 +754,9 @@ export function createApp(activeStore: ContinuumStore) {
     if (!result) {
       return c.json({ error: "candidate_not_found" }, 404)
     }
-    await activeStore.createMemoryEvaluation(evaluateMemoryLike({ target: result.memory, targetType: "memory" }))
+    await activeStore.createMemoryEvaluation(
+      evaluateMemoryLike({ target: result.memory, targetType: "memory" }),
+    )
     return c.json(result)
   })
 
@@ -741,7 +794,9 @@ export function createApp(activeStore: ContinuumStore) {
       return c.json({ error: "policy_denied", policyDecision }, 403)
     }
 
-    const activeMemories = await activeStore.listActiveMemories(parsed.projectId ? { projectId: parsed.projectId } : {})
+    const activeMemories = await activeStore.listActiveMemories(
+      parsed.projectId ? { projectId: parsed.projectId } : {},
+    )
     const { pack, rankings } = buildContextPack(parsed, activeMemories)
 
     const auditInput = {
@@ -779,7 +834,6 @@ export function createApp(activeStore: ContinuumStore) {
     return c.json(pack)
   })
 
-
   api.post("/v1/handoffs/compile", async (c) => {
     const body = await c.req.json()
     const parsed = HandoffCompileRequestSchema.parse(body)
@@ -790,7 +844,12 @@ export function createApp(activeStore: ContinuumStore) {
       sensitivity: parsed.retrieval?.allowSensitive ? "sensitive" : "normal",
       allowSensitive: parsed.retrieval?.allowSensitive ?? false,
       purpose: parsed.objective,
-      payload: { title: parsed.title, objective: parsed.objective, include: parsed.include, artifactRefs: parsed.artifactRefs },
+      payload: {
+        title: parsed.title,
+        objective: parsed.objective,
+        include: parsed.include,
+        artifactRefs: parsed.artifactRefs,
+      },
     })
 
     if (policyDecision.decision === "deny") {
@@ -869,7 +928,11 @@ export function createApp(activeStore: ContinuumStore) {
       targetType: "handoff",
       sensitivity: "normal",
       purpose: parsed.objective,
-      payload: { title: parsed.title, objective: parsed.objective, sourceMemoryIds: parsed.sourceMemoryIds },
+      payload: {
+        title: parsed.title,
+        objective: parsed.objective,
+        sourceMemoryIds: parsed.sourceMemoryIds,
+      },
     })
 
     if (policyDecision.decision === "deny") {
@@ -897,4 +960,6 @@ export default {
   fetch: app.fetch,
 }
 
-console.log(`continuum-memory-api listening on http://localhost:${config.apiPort} with ${store.kind} store`)
+console.log(
+  `continuum-memory-api listening on http://localhost:${config.apiPort} with ${store.kind} store`,
+)

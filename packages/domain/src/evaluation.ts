@@ -10,7 +10,13 @@ export const EvaluationKindSchema = z.enum([
 ])
 export type EvaluationKind = z.infer<typeof EvaluationKindSchema>
 
-export const EvaluationTargetTypeSchema = z.enum(["memory", "candidate", "handoff", "context_pack", "policy_decision"])
+export const EvaluationTargetTypeSchema = z.enum([
+  "memory",
+  "candidate",
+  "handoff",
+  "context_pack",
+  "policy_decision",
+])
 export type EvaluationTargetType = z.infer<typeof EvaluationTargetTypeSchema>
 
 export const EvaluationFindingSeveritySchema = z.enum(["info", "warning", "error"])
@@ -61,4 +67,6 @@ export const HandoffCompletenessEvaluationRequestSchema = z.object({
   projectId: z.string().optional(),
   handoff: HandoffPackSchema.optional(),
 })
-export type HandoffCompletenessEvaluationRequest = z.input<typeof HandoffCompletenessEvaluationRequestSchema>
+export type HandoffCompletenessEvaluationRequest = z.input<
+  typeof HandoffCompletenessEvaluationRequestSchema
+>

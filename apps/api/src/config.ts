@@ -37,15 +37,24 @@ export function getConfig(): ContinuumConfig {
       process.env.DATABASE_URL ??
       "postgres://continuum:continuum@localhost:5432/continuum",
     migrationsDir: process.env.CONTINUUM_MIGRATIONS_DIR ?? "infra/migrations",
-    defaultContextBudgetTokens: parseInteger(process.env.CONTINUUM_DEFAULT_CONTEXT_BUDGET_TOKENS, 12000),
+    defaultContextBudgetTokens: parseInteger(
+      process.env.CONTINUUM_DEFAULT_CONTEXT_BUDGET_TOKENS,
+      12000,
+    ),
     defaultLlmProviderId: process.env.CONTINUUM_LLM_DEFAULT_PROVIDER ?? "mock",
-    openAiCompatibleBaseUrl: process.env.CONTINUUM_OPENAI_COMPATIBLE_BASE_URL ?? "https://api.openai.com/v1",
-    openAiCompatibleApiKeyEnv: process.env.CONTINUUM_OPENAI_COMPATIBLE_API_KEY_ENV ?? "OPENAI_API_KEY",
-    openAiCompatibleDefaultModel: process.env.CONTINUUM_OPENAI_COMPATIBLE_DEFAULT_MODEL ?? "provider-default",
+    openAiCompatibleBaseUrl:
+      process.env.CONTINUUM_OPENAI_COMPATIBLE_BASE_URL ?? "https://api.openai.com/v1",
+    openAiCompatibleApiKeyEnv:
+      process.env.CONTINUUM_OPENAI_COMPATIBLE_API_KEY_ENV ?? "OPENAI_API_KEY",
+    openAiCompatibleDefaultModel:
+      process.env.CONTINUUM_OPENAI_COMPATIBLE_DEFAULT_MODEL ?? "provider-default",
     ollamaBaseUrl: process.env.CONTINUUM_OLLAMA_BASE_URL ?? "http://localhost:11434",
     ollamaDefaultModel: process.env.CONTINUUM_OLLAMA_DEFAULT_MODEL ?? "llama3.1",
-    anthropicCompatibleBaseUrl: process.env.CONTINUUM_ANTHROPIC_COMPATIBLE_BASE_URL ?? "https://api.anthropic.com/v1",
-    anthropicCompatibleApiKeyEnv: process.env.CONTINUUM_ANTHROPIC_COMPATIBLE_API_KEY_ENV ?? "ANTHROPIC_API_KEY",
-    anthropicCompatibleDefaultModel: process.env.CONTINUUM_ANTHROPIC_COMPATIBLE_DEFAULT_MODEL ?? "provider-default",
+    anthropicCompatibleBaseUrl:
+      process.env.CONTINUUM_ANTHROPIC_COMPATIBLE_BASE_URL ?? "https://api.anthropic.com/v1",
+    anthropicCompatibleApiKeyEnv:
+      process.env.CONTINUUM_ANTHROPIC_COMPATIBLE_API_KEY_ENV ?? "ANTHROPIC_API_KEY",
+    anthropicCompatibleDefaultModel:
+      process.env.CONTINUUM_ANTHROPIC_COMPATIBLE_DEFAULT_MODEL ?? "provider-default",
   }
 }

@@ -133,12 +133,18 @@ function sectionAffinity(memory: MemoryRecord, section: ContextSectionPlan) {
     reasons.push("section keywords matched memory content")
   }
 
-  if (section.name === "open_tasks" && /\b(open|next|todo|blocker|risk|failed|remaining)\b/i.test(memory.content)) {
+  if (
+    section.name === "open_tasks" &&
+    /\b(open|next|todo|blocker|risk|failed|remaining)\b/i.test(memory.content)
+  ) {
     score += 0.12
     reasons.push("content looks like unfinished work")
   }
 
-  if (section.name === "user_preferences" && /\b(prefer|preference|default|style|workflow)\b/i.test(memory.content)) {
+  if (
+    section.name === "user_preferences" &&
+    /\b(prefer|preference|default|style|workflow)\b/i.test(memory.content)
+  ) {
     score += 0.12
     reasons.push("content looks like a user preference")
   }
@@ -146,8 +152,14 @@ function sectionAffinity(memory: MemoryRecord, section: ContextSectionPlan) {
   return { score: Math.min(1, score), reasons }
 }
 
-function taskRelevance(memory: MemoryRecord, request: ParsedContextBuildRequest, section: ContextSectionPlan) {
-  const taskWords = words([request.task, request.query ?? "", section.name, section.purpose].join(" "))
+function taskRelevance(
+  memory: MemoryRecord,
+  request: ParsedContextBuildRequest,
+  section: ContextSectionPlan,
+) {
+  const taskWords = words(
+    [request.task, request.query ?? "", section.name, section.purpose].join(" "),
+  )
   const textWords = words(memoryText(memory))
   const score = overlapScore(taskWords, textWords)
   const reasons = score > 0 ? ["task/query terms matched memory content"] : []
@@ -175,13 +187,18 @@ function strategyWeights(strategy: ParsedContextBuildRequest["retrieval"]["strat
   return { section: 0.3, task: 0.24, confidence: 0.2, recency: 0.14, evidence: 0.12 }
 }
 
-function scoreMemory(memory: MemoryRecord, section: ContextSectionPlan, request: ParsedContextBuildRequest) {
+function scoreMemory(
+  memory: MemoryRecord,
+  section: ContextSectionPlan,
+  request: ParsedContextBuildRequest,
+) {
   const sectionScore = sectionAffinity(memory, section)
   const taskScore = taskRelevance(memory, request, section)
   const scopeScore = projectScopeScore(memory, request.projectId)
   const weights = strategyWeights(request.retrieval.strategy)
   const evidenceScore = memory.sourceEventIds.length || memory.sourceArtifactIds.length ? 1 : 0.2
-  const sensitivityPenalty = memory.sensitivity === "secret" || memory.sensitivity === "sensitive" ? 0.15 : 0
+  const sensitivityPenalty =
+    memory.sensitivity === "secret" || memory.sensitivity === "sensitive" ? 0.15 : 0
 
   let score =
     sectionScore.score * weights.section +
@@ -202,7 +219,11 @@ function scoreMemory(memory: MemoryRecord, section: ContextSectionPlan, request:
   return { score, reasons: unique(reasons) }
 }
 
-function renderMemoryForContext(memory: MemoryRecord, ranking: ContextRanking, includeEvidence: boolean) {
+function renderMemoryForContext(
+  memory: MemoryRecord,
+  ranking: ContextRanking,
+  includeEvidence: boolean,
+) {
   const evidence = includeEvidence
     ? ` [memory:${memory.id}; confidence:${memory.confidence.toFixed(2)}; score:${ranking.score.toFixed(2)}]`
     : ""
@@ -247,7 +268,10 @@ export interface BuildContextPackResult {
   rankings: ContextRanking[]
 }
 
-export function buildContextPack(request: ParsedContextBuildRequest, memories: MemoryRecord[]): BuildContextPackResult {
+export function buildContextPack(
+  request: ParsedContextBuildRequest,
+  memories: MemoryRecord[],
+): BuildContextPackResult {
   const plan = createContextPlan(request)
   const sections: ContextSection[] = []
   const rankings: ContextRanking[] = []
@@ -260,7 +284,10 @@ export function buildContextPack(request: ParsedContextBuildRequest, memories: M
   for (const sectionPlan of plan.sections) {
     const rankedForSection = memories
       .filter((memory) => request.retrieval.includeSuperseded || memory.status !== "superseded")
-      .filter((memory) => request.retrieval.allowSensitive || !["sensitive", "secret"].includes(memory.sensitivity))
+      .filter(
+        (memory) =>
+          request.retrieval.allowSensitive || !["sensitive", "secret"].includes(memory.sensitivity),
+      )
       .map((memory) => {
         const scored = scoreMemory(memory, sectionPlan, request)
         const estimatedTokens = estimateTokens(memory.content) + 12
@@ -289,7 +316,9 @@ export function buildContextPack(request: ParsedContextBuildRequest, memories: M
 
       rankings.push(ranking)
       rankedMemories.push({ memory: entry.memory, ranking })
-      contentLines.push(renderMemoryForContext(entry.memory, ranking, request.retrieval.includeEvidence))
+      contentLines.push(
+        renderMemoryForContext(entry.memory, ranking, request.retrieval.includeEvidence),
+      )
       sectionTokens += entry.estimatedTokens
       usedTokens += entry.estimatedTokens
 

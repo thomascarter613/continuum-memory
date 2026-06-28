@@ -1,6 +1,12 @@
 import { z } from "zod"
 
-export const LlmProviderKindSchema = z.enum(["mock", "openai-compatible", "ollama", "anthropic-compatible", "custom"])
+export const LlmProviderKindSchema = z.enum([
+  "mock",
+  "openai-compatible",
+  "ollama",
+  "anthropic-compatible",
+  "custom",
+])
 export type LlmProviderKind = z.infer<typeof LlmProviderKindSchema>
 
 export const LlmCapabilitySchema = z.object({
@@ -24,7 +30,16 @@ export const LlmProviderConfigSchema = z.object({
   apiKeyEnv: z.string().optional(),
   enabled: z.boolean().default(true),
   priority: z.number().int().nonnegative().default(100),
-  capabilities: LlmCapabilitySchema.default({}),
+  capabilities: LlmCapabilitySchema.default({
+    chat: true,
+    embeddings: false,
+    toolCalling: false,
+    jsonMode: false,
+    vision: false,
+    streaming: false,
+    contextWindow: 8192,
+    maxOutputTokens: 2048,
+  }),
   metadata: z.record(z.string(), z.unknown()).default({}),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
@@ -70,7 +85,14 @@ export const PromptCompileResponseSchema = z.object({
 })
 export type PromptCompileResponse = z.infer<typeof PromptCompileResponseSchema>
 
-export const LlmCapabilityNameSchema = z.enum(["chat", "embeddings", "toolCalling", "jsonMode", "vision", "streaming"])
+export const LlmCapabilityNameSchema = z.enum([
+  "chat",
+  "embeddings",
+  "toolCalling",
+  "jsonMode",
+  "vision",
+  "streaming",
+])
 export type LlmCapabilityName = z.infer<typeof LlmCapabilityNameSchema>
 
 export const LlmRouteRequestSchema = z.object({
@@ -173,7 +195,10 @@ export const LlmCallAuditSchema = z.object({
 })
 export type LlmCallAudit = z.infer<typeof LlmCallAuditSchema>
 
-export const CreateLlmCallAuditSchema = LlmCallAuditSchema.omit({ id: true, createdAt: true }).extend({
+export const CreateLlmCallAuditSchema = LlmCallAuditSchema.omit({
+  id: true,
+  createdAt: true,
+}).extend({
   id: z.string().uuid().optional(),
   createdAt: z.string().datetime().optional(),
 })

@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "migrate": "bunx biome migrate",
     "dev": "bun --filter @continuum/api run dev",
     "api:dev": "bun --filter @continuum/api run dev",
     "cli": "bun --filter @continuum/cli start",

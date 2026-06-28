@@ -31,7 +31,11 @@ describe("InMemoryContinuumStore", () => {
       status: "superseded",
     })
 
-    const results = await store.searchMemory({ query: "store", limit: 10, includeSuperseded: false })
+    const results = await store.searchMemory({
+      query: "store",
+      limit: 10,
+      includeSuperseded: false,
+    })
     expect(results).toHaveLength(1)
     expect(results[0]?.content).toContain("PostgreSQL")
   })
@@ -47,7 +51,11 @@ describe("InMemoryContinuumStore", () => {
       suggestedMemoryType: "decision",
     })
 
-    const candidates = await store.searchCandidates({ query: "PostgreSQL", projectId: "test", limit: 10 })
+    const candidates = await store.searchCandidates({
+      query: "PostgreSQL",
+      projectId: "test",
+      limit: 10,
+    })
     expect(candidates).toHaveLength(1)
 
     const promoted = await store.promoteCandidate(candidate.id, {})

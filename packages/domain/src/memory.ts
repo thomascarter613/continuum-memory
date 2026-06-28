@@ -46,7 +46,10 @@ export const MemoryEventSchema = z.object({
 
 export type MemoryEvent = z.infer<typeof MemoryEventSchema>
 
-export const CreateMemoryEventSchema = MemoryEventSchema.omit({ id: true, occurredAt: true }).extend({
+export const CreateMemoryEventSchema = MemoryEventSchema.omit({
+  id: true,
+  occurredAt: true,
+}).extend({
   id: z.string().uuid().optional(),
   occurredAt: z.string().datetime().optional(),
 })
@@ -86,8 +89,6 @@ export const CreateMemoryRecordSchema = MemoryRecordSchema.omit({
 })
 
 export type CreateMemoryRecord = z.input<typeof CreateMemoryRecordSchema>
-
-
 
 export const MemoryCandidateTypeSchema = z.enum([
   "preference",

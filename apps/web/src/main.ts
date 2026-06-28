@@ -1,7 +1,15 @@
 import { ContinuumClient } from "@continuum/sdk-js"
 import "./styles.css"
 
-type Tab = "overview" | "memories" | "candidates" | "artifacts" | "handoffs" | "governance" | "llm" | "tools"
+type Tab =
+  | "overview"
+  | "memories"
+  | "candidates"
+  | "artifacts"
+  | "handoffs"
+  | "governance"
+  | "llm"
+  | "tools"
 
 type State = {
   tab: Tab
@@ -14,7 +22,10 @@ type State = {
   data: Record<string, unknown>
 }
 
-const initialApiUrl = localStorage.getItem("continuum.apiUrl") ?? import.meta.env.VITE_CONTINUUM_API_URL ?? "http://localhost:3030"
+const initialApiUrl =
+  localStorage.getItem("continuum.apiUrl") ??
+  import.meta.env.VITE_CONTINUUM_API_URL ??
+  "http://localhost:3030"
 const initialProjectId = localStorage.getItem("continuum.projectId") ?? ""
 
 const state: State = {
@@ -51,7 +62,9 @@ function escapeHtml(value: unknown) {
 function fmtDate(value: unknown) {
   if (!value) return ""
   try {
-    return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(String(value)))
+    return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(
+      new Date(String(value)),
+    )
   } catch {
     return String(value)
   }
@@ -113,7 +126,9 @@ function shell(content: string) {
   })
 
   document.querySelector<HTMLButtonElement>("#save-settings")?.addEventListener("click", () => {
-    state.apiUrl = (document.querySelector<HTMLInputElement>("#api-url")?.value ?? state.apiUrl).trim()
+    state.apiUrl = (
+      document.querySelector<HTMLInputElement>("#api-url")?.value ?? state.apiUrl
+    ).trim()
     state.projectId = (document.querySelector<HTMLInputElement>("#project-id")?.value ?? "").trim()
     localStorage.setItem("continuum.apiUrl", state.apiUrl)
     localStorage.setItem("continuum.projectId", state.projectId)
@@ -209,7 +224,8 @@ function renderHandoff(handoff: any) {
 }
 
 function renderPolicy(policy: any) {
-  const kind = policy.decision === "deny" ? "danger" : policy.decision === "review" ? "warn" : "normal"
+  const kind =
+    policy.decision === "deny" ? "danger" : policy.decision === "review" ? "warn" : "normal"
   return `<div class="item-title">${escapeHtml(policy.action)}</div>
   <div class="item-meta">${badge(policy.decision, kind)} ${badge(policy.sensitivity)} <span>${escapeHtml(policy.targetType ?? "")}</span> <span>${fmtDate(policy.createdAt)}</span></div>
   <div class="item-body">${escapeHtml((policy.reasons ?? []).join("; "))}</div>`
@@ -233,27 +249,49 @@ async function loadOverview() {
   })
 }
 
-function renderListTab(title: string, description: string, items: unknown, itemRenderer: (item: any) => string, load: () => void, placeholder = "Search") {
-  shell(`${header(title, description, `<button class="primary" id="refresh">Refresh</button>`)}${searchbar(placeholder)}<div class="panel">${listItems(items, itemRenderer)}</div>`)
+function renderListTab(
+  title: string,
+  description: string,
+  items: unknown,
+  itemRenderer: (item: any) => string,
+  load: () => void,
+  placeholder = "Search",
+) {
+  shell(
+    `${header(title, description, `<button class="primary" id="refresh">Refresh</button>`)}${searchbar(placeholder)}<div class="panel">${listItems(items, itemRenderer)}</div>`,
+  )
   document.querySelector("#refresh")?.addEventListener("click", load)
   wireSearch(load)
 }
 
 async function loadMemories() {
   await withLoad(async () => {
-    state.data.memories = await client().searchMemory({ ...projectInput(), query: state.query || undefined, limit: 100, includeSuperseded: false })
+    state.data.memories = await client().searchMemory({
+      ...projectInput(),
+      query: state.query || undefined,
+      limit: 100,
+      includeSuperseded: false,
+    })
   })
 }
 
 async function loadCandidates() {
   await withLoad(async () => {
-    state.data.candidates = await client().searchCandidates({ ...projectInput(), query: state.query || undefined, limit: 100 })
+    state.data.candidates = await client().searchCandidates({
+      ...projectInput(),
+      query: state.query || undefined,
+      limit: 100,
+    })
   })
 }
 
 async function loadArtifacts() {
   await withLoad(async () => {
-    state.data.artifacts = await client().searchArtifacts({ ...projectInput(), query: state.query || undefined, limit: 100 })
+    state.data.artifacts = await client().searchArtifacts({
+      ...projectInput(),
+      query: state.query || undefined,
+      limit: 100,
+    })
   })
 }
 
@@ -313,10 +351,23 @@ function renderTools() {
       <button class="primary" id="build-context">Build Context</button>
     </div>`)
   document.querySelector("#compile-handoff")?.addEventListener("click", async () => {
-    await toolRun(async () => client().compileHandoff({ ...projectInput(), objective: value("handoff-objective"), title: "Admin UI Handoff", query: "decisions constraints next actions verification" }))
+    await toolRun(async () =>
+      client().compileHandoff({
+        ...projectInput(),
+        objective: value("handoff-objective"),
+        title: "Admin UI Handoff",
+        query: "decisions constraints next actions verification",
+      }),
+    )
   })
   document.querySelector("#build-context")?.addEventListener("click", async () => {
-    await toolRun(async () => client().buildContext({ ...projectInput(), task: value("context-task"), query: "decisions constraints next actions verification" }))
+    await toolRun(async () =>
+      client().buildContext({
+        ...projectInput(),
+        task: value("context-task"),
+        query: "decisions constraints next actions verification",
+      }),
+    )
   })
 }
 
@@ -342,27 +393,79 @@ function renderCurrentTab() {
     return
   }
   switch (state.tab) {
-    case "overview": renderOverview(); break
-    case "memories": renderListTab("Memories", "Search durable promoted memory records.", (state.data.memories as any)?.results, renderMemory, loadMemories, "Search memory content"); break
-    case "candidates": renderListTab("Candidates", "Review proposed, promoted, and rejected memory candidates.", (state.data.candidates as any)?.results, renderCandidate, loadCandidates, "Search candidate content"); break
-    case "artifacts": renderListTab("Artifacts", "Browse repository/file artifact memory and generated outputs.", (state.data.artifacts as any)?.results, renderArtifact, loadArtifacts, "Search paths, names, previews"); break
-    case "handoffs": renderListTab("Handoffs", "Browse compiled and manually-created handoff packs.", (state.data.handoffs as any)?.results, renderHandoff, loadHandoffs); break
-    case "governance": renderGovernance(); break
-    case "llm": renderLlm(); break
-    case "tools": renderTools(); break
+    case "overview":
+      renderOverview()
+      break
+    case "memories":
+      renderListTab(
+        "Memories",
+        "Search durable promoted memory records.",
+        (state.data.memories as any)?.results,
+        renderMemory,
+        loadMemories,
+        "Search memory content",
+      )
+      break
+    case "candidates":
+      renderListTab(
+        "Candidates",
+        "Review proposed, promoted, and rejected memory candidates.",
+        (state.data.candidates as any)?.results,
+        renderCandidate,
+        loadCandidates,
+        "Search candidate content",
+      )
+      break
+    case "artifacts":
+      renderListTab(
+        "Artifacts",
+        "Browse repository/file artifact memory and generated outputs.",
+        (state.data.artifacts as any)?.results,
+        renderArtifact,
+        loadArtifacts,
+        "Search paths, names, previews",
+      )
+      break
+    case "handoffs":
+      renderListTab(
+        "Handoffs",
+        "Browse compiled and manually-created handoff packs.",
+        (state.data.handoffs as any)?.results,
+        renderHandoff,
+        loadHandoffs,
+      )
+      break
+    case "governance":
+      renderGovernance()
+      break
+    case "llm":
+      renderLlm()
+      break
+    case "tools":
+      renderTools()
+      break
   }
 }
 
 function loadCurrentTab() {
   switch (state.tab) {
-    case "overview": return loadOverview()
-    case "memories": return loadMemories()
-    case "candidates": return loadCandidates()
-    case "artifacts": return loadArtifacts()
-    case "handoffs": return loadHandoffs()
-    case "governance": return loadGovernance()
-    case "llm": return loadLlm()
-    case "tools": renderTools(); return Promise.resolve()
+    case "overview":
+      return loadOverview()
+    case "memories":
+      return loadMemories()
+    case "candidates":
+      return loadCandidates()
+    case "artifacts":
+      return loadArtifacts()
+    case "handoffs":
+      return loadHandoffs()
+    case "governance":
+      return loadGovernance()
+    case "llm":
+      return loadLlm()
+    case "tools":
+      renderTools()
+      return Promise.resolve()
   }
 }
 
